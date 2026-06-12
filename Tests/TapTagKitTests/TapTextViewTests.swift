@@ -45,6 +45,21 @@ final class TapTextViewTests: XCTestCase {
         XCTAssertTrue(textView.text.contains("#sea"))
     }
 
+    func testPlaceholder_showsWhileEmptyAndHidesWithText() {
+        let textView = TapTextView()
+        textView.configuration = .init(placeholder: "Type here")
+
+        let label = textView.subviews.compactMap { $0 as? UILabel }.first
+        XCTAssertEqual(label?.text, "Type here")
+        XCTAssertEqual(label?.isHidden, false)
+
+        textView.text = "#sun"
+        XCTAssertEqual(label?.isHidden, true)
+
+        textView.text = ""
+        XCTAssertEqual(label?.isHidden, false)
+    }
+
     func testTagsWithRegexMetacharacters_doNotBreakSelection() {
         let textView = TapTextView()
         textView.text = "#c++ and #sea"

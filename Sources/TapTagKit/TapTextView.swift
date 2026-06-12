@@ -17,19 +17,27 @@ public class TapTextView: UITextView {
         public var infoButtonTitle: String
         public var selectButtonAccessibilityLabel: String
         public var tagHighlightColor: UIColor
+        /// Shown while the text view is empty; nil disables the placeholder.
+        public var placeholder: String?
+        /// Keeps the text content above the keyboard via content insets.
+        public var avoidsKeyboard: Bool
 
         public init(
             toolbarInfoTitle: String = "Actions on selected hashtags",
             toolbarInfoMessage: String = "Copy, cut, group, deselect, or delete every selected hashtag at once.",
             infoButtonTitle: String = "OK",
             selectButtonAccessibilityLabel: String = "Select hashtags",
-            tagHighlightColor: UIColor = UIColor(red: 0.808, green: 0.027, blue: 0.333, alpha: 1)
+            tagHighlightColor: UIColor = UIColor(red: 0.808, green: 0.027, blue: 0.333, alpha: 1),
+            placeholder: String? = nil,
+            avoidsKeyboard: Bool = false
         ) {
             self.toolbarInfoTitle = toolbarInfoTitle
             self.toolbarInfoMessage = toolbarInfoMessage
             self.infoButtonTitle = infoButtonTitle
             self.selectButtonAccessibilityLabel = selectButtonAccessibilityLabel
             self.tagHighlightColor = tagHighlightColor
+            self.placeholder = placeholder
+            self.avoidsKeyboard = avoidsKeyboard
         }
     }
 
@@ -47,8 +55,18 @@ public class TapTextView: UITextView {
         }
     }
 
-    public var configuration = Configuration()
+    public var configuration = Configuration() {
+        didSet { applyConfiguration() }
+    }
     public weak var tagDelegate: TapTextViewDelegate?
+
+    public override var text: String! {
+        didSet { refreshPlaceholder() }
+    }
+
+    public override var attributedText: NSAttributedString! {
+        didSet { refreshPlaceholder() }
+    }
 
     var selectionDict = [String: Int]()
     private var viewTagCount = Int()
@@ -56,6 +74,60 @@ public class TapTextView: UITextView {
     private var firstTimeGrouped = false
     private var activateButton = UIBarButtonItem()
     private weak var presentingViewController: UIViewController?
+    private let placeholderLabel = UILabel()
+
+    // MARK: - Configuration
+
+    private func applyConfiguration() {
+        installPlaceholderIfNeeded()
+        installKeyboardAvoidanceIfNeeded()
+    }
+
+    private func installPlaceholderIfNeeded() {
+        guard let placeholder = configuration.placeholder else {
+            placeholderLabel.removeFromSuperview()
+            return
+        }
+
+        placeholderLabel.text = placeholder
+        placeholderLabel.font = .italicSystemFont(ofSize: font?.pointSize ?? UIFont.labelFontSize)
+        placeholderLabel.textColor = .placeholderText
+        placeholderLabel.sizeToFit()
+        placeholderLabel.frame.origin = CGPoint(x: 5, y: (font?.pointSize ?? UIFont.labelFontSize) / 2)
+
+        if placeholderLabel.superview == nil {
+            addSubview(placeholderLabel)
+            NotificationCenter.default.addObserver(
+                self, selector: #selector(refreshPlaceholder),
+                name: UITextView.textDidChangeNotification, object: self)
+        }
+        refreshPlaceholder()
+    }
+
+    @objc private func refreshPlaceholder() {
+        placeholderLabel.isHidden = !(text ?? "").isEmpty
+    }
+
+    private func installKeyboardAvoidanceIfNeeded() {
+        guard configuration.avoidsKeyboard else { return }
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(adjustForKeyboard),
+            name: UIResponder.keyboardWillHideNotification, object: nil)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(adjustForKeyboard),
+            name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+    }
+
+    @objc private func adjustForKeyboard(notification: Notification) {
+        guard let keyboardValue = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue else { return }
+
+        if notification.name == UIResponder.keyboardWillHideNotification {
+            contentInset = .zero
+        } else {
+            contentInset = UIEdgeInsets(top: 0, left: 0, bottom: keyboardValue.cgRectValue.height, right: 0)
+        }
+        scrollIndicatorInsets = contentInset
+    }
 
     // MARK: - Activation
 
