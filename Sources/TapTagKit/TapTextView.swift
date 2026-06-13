@@ -167,9 +167,7 @@ public class TapTextView: UITextView {
     }
 
     private func installTapRecognizer() {
-        tapGestureRecognizer = UITapGestureRecognizer(
-            target: self,
-            action: #selector(tapResponse(recognizer:)))
+        tapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(tapResponse(recognizer:)))
         tapGestureRecognizer.isEnabled = false
         addGestureRecognizer(tapGestureRecognizer)
     }
