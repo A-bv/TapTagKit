@@ -41,20 +41,6 @@ public class TapTextView: UITextView {
         }
     }
 
-    private enum TagSelectionState {
-        case selected
-        case notSelected
-    }
-
-    private enum Constants {
-        static let cornerRadiusMultiplier: CGFloat = 4.0
-
-        enum Insets {
-            static let horizontal: CGFloat = -1
-            static let vertical: CGFloat = 2
-        }
-    }
-
     public var configuration = Configuration() {
         didSet { applyConfiguration() }
     }
@@ -81,7 +67,6 @@ public class TapTextView: UITextView {
     }
 
     var selectionDict = [String: Int]()
-    private var viewTagCount = Int()
     private var tapGestureRecognizer = UITapGestureRecognizer()
     private var firstTimeGrouped = false
     private var activateButton = UIBarButtonItem()
@@ -245,69 +230,37 @@ public class TapTextView: UITextView {
     }
 
     func processTappedWord(tappedWord: String?) {
-        guard let tappedWord else { return }
+        guard let tappedWord, !tappedWord.isEmpty else { return }
 
-        if let selectedTag = selectionDict[tappedWord] {
-            selectTag(base: tappedWord, tag: selectedTag, state: .selected)
+        if selectionDict[tappedWord] != nil {
             selectionDict[tappedWord] = nil
         } else {
-            viewTagCount += 1
-            selectionDict[tappedWord] = viewTagCount    //tappedWord = unique key
-            selectTag(base: tappedWord, tag: viewTagCount, state: .notSelected)
+            selectionDict[tappedWord] = selectionDict.count + 1
         }
+        applyHighlighting()
     }
 
-    private func selectTag(base: String, tag: Int, state: TagSelectionState) {
-        var textColorAttribute = [NSAttributedString.Key: UIColor]()
-        let myString = NSMutableAttributedString(attributedString: self.attributedText)
-
-        let pattern = "\\#\(NSRegularExpression.escapedPattern(for: base))\\b"
-        guard let regex = try? NSRegularExpression(pattern: pattern) else { return }
-
-        let range = NSRange(self.text.startIndex..., in: self.text)
-        let matches = regex.matches(in: self.text, options: [], range: range)
-
-        for match in matches {
-            switch state {
-            case .notSelected:
-                textColorAttribute = [.foregroundColor: UIColor.white]
-
-                let frame = frameOfTextInRange(range: match.range)
-                let framePadding = frame.insetBy(dx: Constants.Insets.horizontal, dy: Constants.Insets.vertical)
-
-                let view = UIView(frame: framePadding)
-                view.layer.cornerRadius = frame.height / Constants.cornerRadiusMultiplier
-                view.tag = tag
-                self.insertSubview(view, at: 0)
-                view.backgroundColor = configuration.tagHighlightColor
-
-            case .selected:
-                textColorAttribute = [.foregroundColor: .label]
-                self.removeSpecificView(tag: tag)
+    private func applyHighlighting() {
+        let base = text ?? ""
+        let attributed = NSMutableAttributedString(
+            string: base,
+            attributes: [
+                .font: font ?? UIFont.preferredFont(forTextStyle: .body),
+                .foregroundColor: UIColor.label,
+            ]
+        )
+        for tag in selectionDict.keys {
+            let pattern = "\\#\(NSRegularExpression.escapedPattern(for: tag))\\b"
+            guard let regex = try? NSRegularExpression(pattern: pattern) else { continue }
+            let range = NSRange(base.startIndex..., in: base)
+            for match in regex.matches(in: base, range: range) {
+                attributed.addAttributes([
+                    .backgroundColor: configuration.tagHighlightColor,
+                    .foregroundColor: UIColor.white,
+                ], range: match.range)
             }
-
-            myString.addAttributes(textColorAttribute, range: match.range)
         }
-
-        self.attributedText = myString.copy() as? NSAttributedString
-    }
-
-    private func frameOfTextInRange(range: NSRange) -> CGRect {
-        let beginning = beginningOfDocument
-        guard
-            let start = position(from: beginning, offset: range.location),
-            let end = position(from: start, offset: range.length),
-            let textRange = textRange(from: start, to: end)
-        else {
-            return CGRect.zero
-        }
-        return convert(firstRect(for: textRange), from: self)
-    }
-
-    private func removeSpecificView(tag: Int) {
-        subviews
-            .filter({ $0.tag == tag })
-            .forEach({ $0.removeFromSuperview() })
+        attributedText = attributed
     }
 
     // MARK: - Toolbar actions
@@ -350,17 +303,16 @@ public class TapTextView: UITextView {
     }
 
     @objc private func cleanTagSelection() {
-        // Snapshot keys first — processTappedWord mutates selectionDict during iteration.
-        for tag in Array(selectionDict.keys) {
-            processTappedWord(tappedWord: tag)
-        }
+        selectionDict.removeAll()
+        applyHighlighting()
     }
 
     @objc func deleteTagSelection() {
-        // Snapshot keys first — processTappedWord mutates selectionDict during iteration.
-        for tag in Array(selectionDict.keys) {
-            processTappedWord(tappedWord: tag)
-            self.text = self.text.replacingOccurrences(
+        let toDelete = Array(selectionDict.keys)
+        selectionDict.removeAll()
+        applyHighlighting()
+        for tag in toDelete {
+            text = text.replacingOccurrences(
                 of: "#\(NSRegularExpression.escapedPattern(for: tag))\\b",
                 with: "",
                 options: .regularExpression)
