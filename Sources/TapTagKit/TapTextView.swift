@@ -46,6 +46,9 @@ public class TapTextView: UITextView {
     }
     public weak var tagDelegate: TapTextViewDelegate?
 
+    /// The tag words currently selected (without the `#` prefix).
+    public var selectedTags: Set<String> { Set(selectionDict.keys) }
+
     // MARK: - Init
 
     public override init(frame: CGRect, textContainer: NSTextContainer?) {
