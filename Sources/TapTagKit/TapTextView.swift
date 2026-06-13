@@ -60,6 +60,18 @@ public class TapTextView: UITextView {
     }
     public weak var tagDelegate: TapTextViewDelegate?
 
+    // MARK: - Init
+
+    public override init(frame: CGRect, textContainer: NSTextContainer?) {
+        super.init(frame: frame, textContainer: textContainer)
+        installTapRecognizer()
+    }
+
+    public required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        installTapRecognizer()
+    }
+
     public override var text: String! {
         didSet { refreshPlaceholder() }
     }
@@ -147,11 +159,11 @@ public class TapTextView: UITextView {
     }
 
     @objc private func startTagSelection() {
+        guard !tapGestureRecognizer.isEnabled else { return }
         self.resignFirstResponder()
         tapGestureRecognizer.isEnabled = true
         isEditable = false
         isSelectable = false
-        addTappedTagRecognizer()
         tagDelegate?.tapTextViewDidStartSelection(self)
         activateButton.isEnabled = false
     }
@@ -166,12 +178,11 @@ public class TapTextView: UITextView {
         activateButton.isEnabled = true
     }
 
-    private func addTappedTagRecognizer() {
+    private func installTapRecognizer() {
         tapGestureRecognizer = UITapGestureRecognizer(
             target: self,
             action: #selector(tapResponse(recognizer:)))
-
-        tapGestureRecognizer.delegate = self as? UIGestureRecognizerDelegate
+        tapGestureRecognizer.isEnabled = false
         addGestureRecognizer(tapGestureRecognizer)
     }
 
