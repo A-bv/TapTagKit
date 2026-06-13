@@ -339,13 +339,15 @@ public class TapTextView: UITextView {
     }
 
     @objc private func cleanTagSelection() {
-        for tag in selectionDict.keys {
+        // Snapshot keys first — processTappedWord mutates selectionDict during iteration.
+        for tag in Array(selectionDict.keys) {
             processTappedWord(tappedWord: tag)
         }
     }
 
     @objc func deleteTagSelection() {
-        for tag in selectionDict.keys {
+        // Snapshot keys first — processTappedWord mutates selectionDict during iteration.
+        for tag in Array(selectionDict.keys) {
             processTappedWord(tappedWord: tag)
             self.text = self.text.replacingOccurrences(
                 of: "#\(NSRegularExpression.escapedPattern(for: tag))\\b",
