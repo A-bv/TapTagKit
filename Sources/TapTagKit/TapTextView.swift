@@ -3,6 +3,15 @@ import UIKit
 public protocol TapTextViewDelegate: AnyObject {
     func tapTextViewDidStartSelection(_ textView: TapTextView)
     func tapTextViewDidFinishSelection(_ textView: TapTextView)
+    func tapTextView(_ textView: TapTextView, didSelect tag: String)
+    func tapTextView(_ textView: TapTextView, didDeselect tag: String)
+}
+
+public extension TapTextViewDelegate {
+    func tapTextViewDidStartSelection(_ textView: TapTextView) {}
+    func tapTextViewDidFinishSelection(_ textView: TapTextView) {}
+    func tapTextView(_ textView: TapTextView, didSelect tag: String) {}
+    func tapTextView(_ textView: TapTextView, didDeselect tag: String) {}
 }
 
 /// A `UITextView` whose hashtags become tappable: a selection mode where
@@ -235,8 +244,10 @@ public class TapTextView: UITextView {
 
         if selectionDict[tappedWord] != nil {
             selectionDict[tappedWord] = nil
+            tagDelegate?.tapTextView(self, didDeselect: tappedWord)
         } else {
             selectionDict[tappedWord] = selectionDict.count + 1
+            tagDelegate?.tapTextView(self, didSelect: tappedWord)
         }
         applyHighlighting()
     }
