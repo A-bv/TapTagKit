@@ -25,3 +25,13 @@ extension MyViewController: TapTextViewDelegate {
 ```
 
 All UI strings and the highlight color are injectable via `TapTextView.Configuration` for localization and theming.
+
+## Xcode Preview
+
+Open `Sources/TapTagKit/Previews.swift` in Xcode and enable the canvas (**Editor › Canvas** or **⌥⌘↩**). The preview renders a live `TapTextView` inside a `UINavigationController`:
+
+- The activate button (`hand.point.up.left`) is in the navigation bar — tap it to enter selection mode.
+- The toolbar at the bottom shows all six actions (copy, cut, group, deselect, delete, info).
+- Tap any hashtag in the text view to highlight it.
+
+> The preview file is wrapped in `#if DEBUG` and is never compiled into release builds.
