@@ -170,8 +170,9 @@ public class TapTextView: UITextView {
 
     /// The bar button that starts a tag-selection session.
     public func makeTapTextViewButton() -> UIBarButtonItem {
-        let img = UIImage(systemName: "hand.point.up.left")!
-        activateButton = UIBarButtonItem(image: img, style: .plain, target: self, action: #selector(startTagSelection))
+        activateButton = UIBarButtonItem(
+            image: UIImage(systemName: "hand.point.up.left"),
+            style: .plain, target: self, action: #selector(startTagSelection))
         activateButton.accessibilityLabel = configuration.selectButtonAccessibilityLabel
         return activateButton
     }
@@ -205,35 +206,28 @@ public class TapTextView: UITextView {
     // MARK: - Toolbar
 
     private func makeToolbarItems() -> [UIBarButtonItem] {
-        let toolbarIcons = [
-            UIImage(systemName: "doc.on.doc"),
-            UIImage(systemName: "scissors"),
-            UIImage(systemName: "square.grid.2x2"),
-            UIImage(systemName: "clear"),
-            UIImage(systemName: "delete.right"),
-            UIImage(systemName: "questionmark.circle.fill")]
-
-        let actions: [Selector] = [
-            #selector(copyTagSelection),
-            #selector(cutTagSelection),
-            #selector(groupTagSelection),
-            #selector(cleanTagSelection),
-            #selector(deleteTagSelection),
-            #selector(toolbarInfo)
+        let buttons: [(symbol: String, action: Selector, label: String)] = [
+            ("doc.on.doc", #selector(copyTagSelection), "Copy selected hashtags"),
+            ("scissors", #selector(cutTagSelection), "Cut selected hashtags"),
+            ("square.grid.2x2", #selector(groupTagSelection), "Group selected hashtags at top"),
+            ("clear", #selector(cleanTagSelection), "Deselect all hashtags"),
+            ("delete.right", #selector(deleteTagSelection), "Delete selected hashtags"),
+            ("questionmark.circle.fill", #selector(toolbarInfo), "About these actions"),
         ]
 
         var toolbar: [UIBarButtonItem] = []
 
-        for (icon, action) in zip(toolbarIcons, actions) {
-            let item = UIBarButtonItem(image: icon!, style: .plain, target: self, action: action)
+        for (index, button) in buttons.enumerated() {
+            let item = UIBarButtonItem(
+                image: UIImage(systemName: button.symbol),
+                style: .plain, target: self, action: button.action)
+            item.accessibilityLabel = button.label
 
-            if icon == toolbarIcons.last {
+            if index == buttons.count - 1 {
                 item.tintColor = .systemOrange
             }
             toolbar.append(item)
-
-            let spacer = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: self, action: nil)
-            toolbar.append(spacer)
+            toolbar.append(UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: self, action: nil))
         }
 
         toolbar.append(UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(doneTagSelection)))

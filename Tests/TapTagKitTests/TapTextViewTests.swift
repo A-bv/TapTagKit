@@ -12,6 +12,10 @@ final class TapTextViewTests: XCTestCase {
 
         // 6 action buttons, 6 flexible spacers, 1 done button.
         XCTAssertEqual(host.toolbarItems?.count, 13)
+
+        // Every action button is labeled for VoiceOver.
+        let labeled = host.toolbarItems?.filter { $0.accessibilityLabel != nil }
+        XCTAssertEqual(labeled?.count, 6)
     }
 
     func testTapTextViewButton_usesTheConfiguredAccessibilityLabel() {
