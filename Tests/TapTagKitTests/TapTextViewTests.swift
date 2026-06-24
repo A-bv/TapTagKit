@@ -122,6 +122,29 @@ final class TapTextViewTests: XCTestCase {
         XCTAssertTrue(textView.text.contains("#sea"))
     }
 
+    func testKeyboardAvoidance_canBeToggledOffWithoutLingeringObservers() {
+        let textView = TapTextView()
+        textView.configuration = .init(avoidsKeyboard: true)
+
+        let frame = CGRect(x: 0, y: 0, width: 320, height: 250)
+        func postKeyboardChange() {
+            NotificationCenter.default.post(
+                name: UIResponder.keyboardWillChangeFrameNotification, object: nil,
+                userInfo: [UIResponder.keyboardFrameEndUserInfoKey: NSValue(cgRect: frame)])
+        }
+
+        postKeyboardChange()
+        XCTAssertEqual(textView.contentInset.bottom, 250, accuracy: 0.5)
+
+        // Turning avoidance off must remove the observers and reset the inset.
+        textView.configuration = .init(avoidsKeyboard: false)
+        XCTAssertEqual(textView.contentInset.bottom, 0, accuracy: 0.5)
+
+        postKeyboardChange()
+        XCTAssertEqual(textView.contentInset.bottom, 0, accuracy: 0.5,
+                       "Keyboard observers should be gone after avoidsKeyboard is turned off")
+    }
+
     // MARK: - Helpers
 
     private func highlightRanges(in attributed: NSAttributedString, color: UIColor) -> [NSRange] {

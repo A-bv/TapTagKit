@@ -123,14 +123,29 @@ public class TapTextView: UITextView {
         placeholderLabel.isHidden = !(text ?? "").isEmpty
     }
 
+    private var keyboardObserversInstalled = false
+
     private func installKeyboardAvoidanceIfNeeded() {
-        guard configuration.avoidsKeyboard else { return }
-        NotificationCenter.default.addObserver(
-            self, selector: #selector(adjustForKeyboard),
-            name: UIResponder.keyboardWillHideNotification, object: nil)
-        NotificationCenter.default.addObserver(
-            self, selector: #selector(adjustForKeyboard),
-            name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+        // applyConfiguration() runs on every `configuration` assignment, so this
+        // must be idempotent — and must tear down when the flag is turned off.
+        if configuration.avoidsKeyboard {
+            guard !keyboardObserversInstalled else { return }
+            keyboardObserversInstalled = true
+            NotificationCenter.default.addObserver(
+                self, selector: #selector(adjustForKeyboard),
+                name: UIResponder.keyboardWillHideNotification, object: nil)
+            NotificationCenter.default.addObserver(
+                self, selector: #selector(adjustForKeyboard),
+                name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+        } else if keyboardObserversInstalled {
+            keyboardObserversInstalled = false
+            NotificationCenter.default.removeObserver(
+                self, name: UIResponder.keyboardWillHideNotification, object: nil)
+            NotificationCenter.default.removeObserver(
+                self, name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+            contentInset = .zero
+            scrollIndicatorInsets = .zero
+        }
     }
 
     @objc private func adjustForKeyboard(notification: Notification) {
