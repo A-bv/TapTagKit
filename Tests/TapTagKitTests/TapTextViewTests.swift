@@ -28,10 +28,10 @@ final class TapTextViewTests: XCTestCase {
         textView.text = "#sun and #sea"
 
         textView.processTappedWord(tappedWord: "sun")
-        XCTAssertEqual(textView.selectionDict.keys.sorted(), ["sun"])
+        XCTAssertEqual(textView.selectedTags, ["sun"])
 
         textView.processTappedWord(tappedWord: "sun")
-        XCTAssertTrue(textView.selectionDict.isEmpty)
+        XCTAssertTrue(textView.selectedTags.isEmpty)
     }
 
     func testDelete_removesSelectedTagsFromTheText() {
@@ -66,6 +66,6 @@ final class TapTextViewTests: XCTestCase {
 
         textView.processTappedWord(tappedWord: "c++")
 
-        XCTAssertEqual(textView.selectionDict.keys.sorted(), ["c++"])
+        XCTAssertEqual(textView.selectedTags, ["c++"])
     }
 }

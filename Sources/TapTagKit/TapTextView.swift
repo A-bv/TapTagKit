@@ -56,7 +56,7 @@ public class TapTextView: UITextView {
     public weak var tagDelegate: TapTextViewDelegate?
 
     /// The tag words currently selected (without the `#` prefix).
-    public var selectedTags: Set<String> { Set(selectionDict.keys) }
+    public var selectedTags: Set<String> { Set(selectedTagWords) }
 
     // MARK: - Init
 
@@ -78,7 +78,9 @@ public class TapTextView: UITextView {
         didSet { refreshPlaceholder() }
     }
 
-    var selectionDict = [String: Int]()
+    /// Selected tag words in tap order (without `#`). Ordered so actions like
+    /// grouping are deterministic; uniqueness is enforced on insert.
+    var selectedTagWords = [String]()
     private var tapGestureRecognizer = UITapGestureRecognizer()
     private var firstTimeGrouped = false
     private var activateButton = UIBarButtonItem()
@@ -223,30 +225,41 @@ public class TapTextView: UITextView {
     // MARK: - Selection
 
     @objc private func tapResponse(recognizer: UITapGestureRecognizer) {
-        let location: CGPoint = recognizer.location(in: self)
-        let position: CGPoint = CGPoint(x: location.x, y: location.y)
+        let location = recognizer.location(in: self)
 
         guard
-            let tapPosition: UITextPosition = closestPosition(to: position),
-            let textRange: UITextRange = tokenizer.rangeEnclosingPosition(
-                tapPosition, with: UITextGranularity.word, inDirection: UITextDirection(rawValue: 1))
+            let tapPosition = closestPosition(to: location),
+            let textRange = tokenizer.rangeEnclosingPosition(
+                tapPosition, with: .word, inDirection: UITextDirection(rawValue: 1)),
+            isHashtag(textRange)
         else {
             return
         }
 
         UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
-        let tappedWord: String? = self.text(in: textRange)
-        processTappedWord(tappedWord: tappedWord)
+        processTappedWord(tappedWord: text(in: textRange))
+    }
+
+    /// Word ranges from the tokenizer exclude the leading `#`, so a tapped word
+    /// counts as a tag only when the character right before it is `#`.
+    private func isHashtag(_ wordRange: UITextRange) -> Bool {
+        guard
+            let hashStart = position(from: wordRange.start, offset: -1),
+            let hashRange = textRange(from: hashStart, to: wordRange.start)
+        else {
+            return false
+        }
+        return text(in: hashRange) == "#"
     }
 
     func processTappedWord(tappedWord: String?) {
         guard let tappedWord, !tappedWord.isEmpty else { return }
 
-        if selectionDict[tappedWord] != nil {
-            selectionDict[tappedWord] = nil
+        if let index = selectedTagWords.firstIndex(of: tappedWord) {
+            selectedTagWords.remove(at: index)
             tagDelegate?.tapTextView(self, didDeselect: tappedWord)
         } else {
-            selectionDict[tappedWord] = selectionDict.count + 1
+            selectedTagWords.append(tappedWord)
             tagDelegate?.tapTextView(self, didSelect: tappedWord)
         }
         applyHighlighting()
@@ -261,7 +274,7 @@ public class TapTextView: UITextView {
                 .foregroundColor: UIColor.label,
             ]
         )
-        for tag in selectionDict.keys {
+        for tag in selectedTagWords {
             let pattern = "\\#\(NSRegularExpression.escapedPattern(for: tag))\\b"
             guard let regex = try? NSRegularExpression(pattern: pattern) else { continue }
             let range = NSRange(base.startIndex..., in: base)
@@ -278,7 +291,7 @@ public class TapTextView: UITextView {
     // MARK: - Toolbar actions
 
     @objc private func copyTagSelection() {
-        let arrayToCopy = selectionDict.keys.map { "#" + $0 }
+        let arrayToCopy = selectedTagWords.map { "#" + $0 }
         UIPasteboard.general.string = arrayToCopy.joined(separator: " ")
     }
 
@@ -315,13 +328,13 @@ public class TapTextView: UITextView {
     }
 
     @objc private func cleanTagSelection() {
-        selectionDict.removeAll()
+        selectedTagWords.removeAll()
         applyHighlighting()
     }
 
     @objc func deleteTagSelection() {
-        let toDelete = Array(selectionDict.keys)
-        selectionDict.removeAll()
+        let toDelete = selectedTagWords
+        selectedTagWords.removeAll()
         applyHighlighting()
         for tag in toDelete {
             text = text.replacingOccurrences(
