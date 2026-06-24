@@ -40,3 +40,6 @@ All UI strings and the highlight color are injectable via `TapTextView.Configura
 
 ## Xcode Preview
 Open `Sources/TapTagKit/Previews.swift` and enable the canvas (**Editor › Canvas**). The preview renders a live `TapTextView` in a `UINavigationController`: tap the activate button (`hand.point.up.left`) in the nav bar to enter selection mode, tap any hashtag to highlight it, and use the bottom toolbar's six actions.
+
+## License
+TapTagKit is available under the MIT license. See [LICENSE](LICENSE) for details.
