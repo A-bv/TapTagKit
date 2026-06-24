@@ -71,16 +71,20 @@ public class TapTextView: UITextView {
     }
 
     public override var text: String! {
-        didSet { refreshPlaceholder() }
+        didSet { captureBaseText(); refreshPlaceholder() }
     }
 
     public override var attributedText: NSAttributedString! {
-        didSet { refreshPlaceholder() }
+        didSet { captureBaseText(); refreshPlaceholder() }
     }
 
     /// Selected tag words in tap order (without `#`). Ordered so actions like
     /// grouping are deterministic; uniqueness is enforced on insert.
     var selectedTagWords = [String]()
+    /// The caller's text with its own styling, before our highlight overlay.
+    /// Highlighting is rebuilt from this each time so user attributes survive.
+    private var baseText = NSAttributedString()
+    private var isApplyingHighlight = false
     private var tapGestureRecognizer = UITapGestureRecognizer()
     private var firstTimeGrouped = false
     private var activateButton = UIBarButtonItem()
@@ -265,27 +269,38 @@ public class TapTextView: UITextView {
         applyHighlighting()
     }
 
+    /// Snapshots the caller's styled text so highlighting can be layered on top
+    /// of it without discarding their fonts, colors, links, etc. Skipped while
+    /// we are the ones writing the highlighted result back.
+    private func captureBaseText() {
+        guard !isApplyingHighlight else { return }
+        baseText = attributedText ?? NSAttributedString(string: text ?? "")
+    }
+
+    /// Matches `#tag` only when it is not immediately followed by another word
+    /// character, so `#sun` never matches inside `#sunny` while tags ending in
+    /// punctuation (e.g. `#c++`) still match — unlike a trailing `\b`.
+    private func tagRegex(for tag: String) -> NSRegularExpression? {
+        let pattern = "#\(NSRegularExpression.escapedPattern(for: tag))(?![\\w])"
+        return try? NSRegularExpression(pattern: pattern)
+    }
+
     private func applyHighlighting() {
-        let base = text ?? ""
-        let attributed = NSMutableAttributedString(
-            string: base,
-            attributes: [
-                .font: font ?? UIFont.preferredFont(forTextStyle: .body),
-                .foregroundColor: UIColor.label,
-            ]
-        )
+        let highlighted = NSMutableAttributedString(attributedString: baseText)
+        let source = baseText.string
+        let fullRange = NSRange(source.startIndex..., in: source)
         for tag in selectedTagWords {
-            let pattern = "\\#\(NSRegularExpression.escapedPattern(for: tag))\\b"
-            guard let regex = try? NSRegularExpression(pattern: pattern) else { continue }
-            let range = NSRange(base.startIndex..., in: base)
-            for match in regex.matches(in: base, range: range) {
-                attributed.addAttributes([
+            guard let regex = tagRegex(for: tag) else { continue }
+            for match in regex.matches(in: source, range: fullRange) {
+                highlighted.addAttributes([
                     .backgroundColor: configuration.tagHighlightColor,
                     .foregroundColor: UIColor.white,
                 ], range: match.range)
             }
         }
-        attributedText = attributed
+        isApplyingHighlight = true
+        attributedText = highlighted
+        isApplyingHighlight = false
     }
 
     // MARK: - Toolbar actions
@@ -300,31 +315,24 @@ public class TapTextView: UITextView {
         deleteTagSelection()
     }
 
-    @objc private func groupTagSelection() {
-        cutTagSelection()
+    @objc func groupTagSelection() {
+        let movedWords = selectedTagWords
+        guard !movedWords.isEmpty else { return }
 
-        //get from clipboard
-        let movedTags = UIPasteboard.general.string
+        // Remove the tags from their current positions (also clears selection).
+        deleteTagSelection()
 
-        let jump = firstTimeGrouped == false ? "\n\n" : ""
+        // Re-insert them, grouped, at the top — separated from the rest of the
+        // text by a blank line on the first grouping only.
+        let separator = firstTimeGrouped ? "" : "\n\n"
         firstTimeGrouped = true
+        let grouped = movedWords.map { "#" + $0 }.joined(separator: " ")
+        text = grouped + separator + (text ?? "")
 
-        guard let movedTags, !movedTags.isEmpty else {
-            return
-        }
+        // Restore the selection (and highlight) on the moved tags.
+        movedWords.forEach { processTappedWord(tappedWord: $0) }
 
-        if let position = self.textRange(from: self.beginningOfDocument, to: self.beginningOfDocument) {
-            self.replace(position, withText: "\(movedTags)" + jump)
-        }
-
-        let movedTagsArray = movedTags.components(separatedBy: " ")
-
-        for tag in movedTagsArray {
-            let tappedWordWithoutHashtag = String(tag.dropFirst(1))
-            processTappedWord(tappedWord: tappedWordWithoutHashtag)
-        }
-
-        self.scrollRangeToVisible(NSRange(location: 0, length: 0))
+        scrollRangeToVisible(NSRange(location: 0, length: 0))
     }
 
     @objc private func cleanTagSelection() {
@@ -337,10 +345,10 @@ public class TapTextView: UITextView {
         selectedTagWords.removeAll()
         applyHighlighting()
         for tag in toDelete {
-            text = text.replacingOccurrences(
-                of: "#\(NSRegularExpression.escapedPattern(for: tag))\\b",
-                with: "",
-                options: .regularExpression)
+            // Consume one trailing space with the tag so removing a tag from the
+            // middle of a line doesn't leave a double space behind.
+            let pattern = "#\(NSRegularExpression.escapedPattern(for: tag))(?![\\w]) ?"
+            text = text.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
         }
     }
 

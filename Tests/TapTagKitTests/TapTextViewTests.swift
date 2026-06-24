@@ -68,4 +68,68 @@ final class TapTextViewTests: XCTestCase {
 
         XCTAssertEqual(textView.selectedTags, ["c++"])
     }
+
+    func testHighlight_marksEveryOccurrenceIncludingPunctuationTags() {
+        let textView = TapTextView()
+        textView.text = "#c++ and #c++ but not #c++plus"
+
+        textView.processTappedWord(tappedWord: "c++")
+
+        // Both standalone "#c++" are highlighted; "#c++plus" is not.
+        let highlighted = highlightRanges(in: textView.attributedText,
+                                          color: textView.configuration.tagHighlightColor)
+        XCTAssertEqual(highlighted.count, 2)
+    }
+
+    func testHighlight_preservesCallerSuppliedAttributes() {
+        let textView = TapTextView()
+        let styled = NSMutableAttributedString(string: "#sun shines")
+        styled.addAttribute(.link, value: "https://example.com",
+                            range: NSRange(location: 5, length: 6)) // "shines"
+        textView.attributedText = styled
+
+        textView.processTappedWord(tappedWord: "sun")
+
+        var foundLink = false
+        textView.attributedText.enumerateAttribute(
+            .link, in: NSRange(location: 0, length: textView.attributedText.length)) { value, _, _ in
+            if value != nil { foundLink = true }
+        }
+        XCTAssertTrue(foundLink, "Highlighting must not discard existing attributes")
+    }
+
+    func testGroup_movesSelectedTagsToTopInTapOrder() {
+        let textView = TapTextView()
+        textView.text = "alpha #one mid #two end #three"
+
+        textView.processTappedWord(tappedWord: "two")
+        textView.processTappedWord(tappedWord: "one")
+        textView.groupTagSelection()
+
+        XCTAssertTrue(textView.text.hasPrefix("#two #one"),
+                      "Grouped tags should appear at the top in tap order, got: \(textView.text ?? "")")
+        XCTAssertEqual(textView.selectedTags, ["one", "two"])
+    }
+
+    func testDelete_doesNotLeaveDoubleSpaces() {
+        let textView = TapTextView()
+        textView.text = "#sun and #sea today"
+        textView.processTappedWord(tappedWord: "sun")
+
+        textView.deleteTagSelection()
+
+        XCTAssertFalse(textView.text.contains("  "), "Deleting a tag should not leave a double space")
+        XCTAssertTrue(textView.text.contains("#sea"))
+    }
+
+    // MARK: - Helpers
+
+    private func highlightRanges(in attributed: NSAttributedString, color: UIColor) -> [NSRange] {
+        var ranges = [NSRange]()
+        attributed.enumerateAttribute(
+            .backgroundColor, in: NSRange(location: 0, length: attributed.length)) { value, range, _ in
+            if let used = value as? UIColor, used == color { ranges.append(range) }
+        }
+        return ranges
+    }
 }
