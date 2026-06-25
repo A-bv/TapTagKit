@@ -240,12 +240,14 @@ public class TapTextView: UITextView {
     public func makeTapTextViewButton() -> UIBarButtonItem {
         activateButton = UIBarButtonItem(
             image: UIImage(systemName: "hand.point.up.left"),
-            style: .plain, target: self, action: #selector(startTagSelection))
+            style: .plain, target: self, action: #selector(beginSelection))
         activateButton.accessibilityLabel = configuration.accessibility.selectButtonLabel
         return activateButton
     }
 
-    @objc private func startTagSelection() {
+    /// Starts a tag-selection session: taps begin selecting hashtags and editing
+    /// is suspended. The same thing the activate bar button does.
+    @objc public func beginSelection() {
         guard !tapGestureRecognizer.isEnabled else { return }
         self.resignFirstResponder()
         tapGestureRecognizer.isEnabled = true
@@ -257,7 +259,8 @@ public class TapTextView: UITextView {
         activateButton.isEnabled = false
     }
 
-    @objc private func doneTagSelection() {
+    /// Ends the session, clears the selection, and restores editing.
+    @objc public func endSelection() {
         clearSelection()
         tapGestureRecognizer.isEnabled = false
         isEditable = true
@@ -306,7 +309,7 @@ public class TapTextView: UITextView {
             toolbar.append(UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: self, action: nil))
         }
 
-        toolbar.append(UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(doneTagSelection)))
+        toolbar.append(UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(endSelection)))
 
         return toolbar
     }

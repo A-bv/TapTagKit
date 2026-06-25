@@ -27,7 +27,7 @@ private final class PreviewViewController: UIViewController {
 
     private let hint: UILabel = {
         let label = UILabel()
-        label.text = "Tap the hand button, then tap a hashtag — every match lights up."
+        label.text = "Tap a hashtag — every match lights up. Use the toolbar below to copy, group, or delete."
         label.font = .preferredFont(forTextStyle: .footnote)
         label.textColor = .secondaryLabel
         label.numberOfLines = 0
@@ -56,7 +56,9 @@ private final class PreviewViewController: UIViewController {
             hint.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -20),
         ])
 
-        // Show the headline feature immediately: highlight every "#swift".
+        // Open in selection mode so the toolbar is live and the canvas is
+        // immediately tappable, with every "#swift" already highlighted.
+        tapTextView.beginSelection()
         tapTextView.selectTag("swift")
     }
 

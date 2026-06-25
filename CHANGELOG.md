@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](https://semver.org).
   `clearSelection()`, `selectedTagsInOrder`, and `isSelecting`.
 - Programmatic action API: `copySelectedTags()`, `cutSelectedTags()`,
   `groupSelectedTags()`, `deleteSelectedTags()`.
+- Programmatic session control: `beginSelection()` and `endSelection()`.
 - `Configuration.selectedTagTextColor` for the highlighted text color.
 - VoiceOver support: selection-change announcements and a selection hint.
 - Public `makeToolbarItems()` so the actions can be placed anywhere.
