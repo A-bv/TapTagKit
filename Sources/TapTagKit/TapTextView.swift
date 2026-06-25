@@ -75,19 +75,17 @@ public class TapTextView: UITextView {
     public weak var tagDelegate: TapTextViewDelegate?
 
     /// The tag words currently selected (without the `#` prefix).
-    public var selectedTags: Set<String> { Set(selectedTagWords) }
+    public var selectedTags: Set<String> { Set(viewModel.selectedTags) }
 
     /// The selected tag words in the order they were selected.
-    public var selectedTagsInOrder: [String] { selectedTagWords }
+    public var selectedTagsInOrder: [String] { viewModel.selectedTags }
 
     /// Whether a tag-selection session is currently active.
     public var isSelecting: Bool { tapGestureRecognizer.isEnabled }
 
     /// Selects `tag` (with or without a leading `#`) and highlights it.
     public func selectTag(_ tag: String) {
-        let word = normalizedTag(tag)
-        guard !word.isEmpty, !selectedTagWords.contains(word) else { return }
-        selectedTagWords.append(word)
+        guard let word = viewModel.select(tag) else { return }
         tagDelegate?.tapTextView(self, didSelect: word)
         announce(word, selected: true)
         applyHighlighting()
@@ -95,8 +93,7 @@ public class TapTextView: UITextView {
 
     /// Removes `tag` from the selection.
     public func deselectTag(_ tag: String) {
-        guard let index = selectedTagWords.firstIndex(of: normalizedTag(tag)) else { return }
-        let word = selectedTagWords.remove(at: index)
+        guard let word = viewModel.deselect(tag) else { return }
         tagDelegate?.tapTextView(self, didDeselect: word)
         announce(word, selected: false)
         applyHighlighting()
@@ -104,10 +101,6 @@ public class TapTextView: UITextView {
 
     /// Clears the whole selection.
     public func clearSelection() { cleanTagSelection() }
-
-    private func normalizedTag(_ tag: String) -> String {
-        tag.hasPrefix("#") ? String(tag.dropFirst()) : tag
-    }
 
     // MARK: - Init
 
@@ -129,14 +122,12 @@ public class TapTextView: UITextView {
         didSet { captureBaseText(); refreshPlaceholder() }
     }
 
-    /// Selected tag words in tap order (without `#`). Ordered so actions like
-    /// grouping are deterministic; uniqueness is enforced on insert.
-    var selectedTagWords = [String]()
+    /// Selection state and pure tag/text logic; this view only renders it.
+    let viewModel = TagSelectionViewModel()
     /// The caller's text with its own styling, before our highlight overlay.
     /// Highlighting is rebuilt from this each time so user attributes survive.
     private var baseText = NSAttributedString()
     private var isApplyingHighlight = false
-    private var regexCache = [String: NSRegularExpression]()
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .rigid)
     private var tapGestureRecognizer = UITapGestureRecognizer()
     private var firstTimeGrouped = false
@@ -323,33 +314,21 @@ public class TapTextView: UITextView {
         processTappedWord(tappedWord: word)
     }
 
-    /// The hashtag word (without `#`) whose token contains `index`, or nil if
-    /// the tap landed outside a hashtag. A hashtag is `#` up to the next
-    /// whitespace, so multi-character tags like `#c++` are captured whole —
-    /// unlike word-granularity tokenizing, which stops at the first `+`.
+    /// The hashtag word (without `#`) whose token contains `index`, or nil.
+    /// Thin pass-through to the view model over the current text.
     func hashtagWord(at index: Int) -> String? {
-        guard let regex = try? NSRegularExpression(pattern: "#\\S+") else { return nil }
-        let source = text ?? ""
-        let ns = source as NSString
-        for match in regex.matches(in: source, range: NSRange(location: 0, length: ns.length))
-        where NSLocationInRange(index, match.range) {
-            return String(ns.substring(with: match.range).dropFirst())
-        }
-        return nil
+        viewModel.hashtagWord(in: text ?? "", at: index)
     }
 
     func processTappedWord(tappedWord: String?) {
         guard let tappedWord, !tappedWord.isEmpty else { return }
-
-        if let index = selectedTagWords.firstIndex(of: tappedWord) {
-            selectedTagWords.remove(at: index)
-            tagDelegate?.tapTextView(self, didDeselect: tappedWord)
-            announce(tappedWord, selected: false)
+        let change = viewModel.toggle(tappedWord)
+        if change.isSelected {
+            tagDelegate?.tapTextView(self, didSelect: change.word)
         } else {
-            selectedTagWords.append(tappedWord)
-            tagDelegate?.tapTextView(self, didSelect: tappedWord)
-            announce(tappedWord, selected: true)
+            tagDelegate?.tapTextView(self, didDeselect: change.word)
         }
+        announce(change.word, selected: change.isSelected)
         applyHighlighting()
     }
 
@@ -369,30 +348,14 @@ public class TapTextView: UITextView {
         baseText = attributedText ?? NSAttributedString(string: text ?? "")
     }
 
-    /// Matches `#tag` only as a whole whitespace-delimited token, so `#sun`
-    /// never matches inside `#sunny` or `a#sun`, while punctuation tags like
-    /// `#c++` still match. Mirrors how `hashtagWord(at:)` reads tokens.
-    /// Compiled regexes are cached since the pattern depends only on the tag.
-    private func tagRegex(for tag: String) -> NSRegularExpression? {
-        if let cached = regexCache[tag] { return cached }
-        let pattern = "(?<!\\S)#\(NSRegularExpression.escapedPattern(for: tag))(?!\\S)"
-        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
-        regexCache[tag] = regex
-        return regex
-    }
-
+    /// Renders the view model's highlight ranges onto a copy of the base text.
     private func applyHighlighting() {
         let highlighted = NSMutableAttributedString(attributedString: baseText)
-        let source = baseText.string
-        let fullRange = NSRange(source.startIndex..., in: source)
-        for tag in selectedTagWords {
-            guard let regex = tagRegex(for: tag) else { continue }
-            for match in regex.matches(in: source, range: fullRange) {
-                highlighted.addAttributes([
-                    .backgroundColor: configuration.tagHighlightColor,
-                    .foregroundColor: UIColor.white,
-                ], range: match.range)
-            }
+        for range in viewModel.highlightRanges(in: baseText.string) {
+            highlighted.addAttributes([
+                .backgroundColor: configuration.tagHighlightColor,
+                .foregroundColor: UIColor.white,
+            ], range: range)
         }
         isApplyingHighlight = true
         attributedText = highlighted
@@ -402,7 +365,7 @@ public class TapTextView: UITextView {
     // MARK: - Toolbar actions
 
     @objc private func copyTagSelection() {
-        let arrayToCopy = selectedTagWords.map { "#" + $0 }
+        let arrayToCopy = viewModel.selectedTags.map { "#" + $0 }
         UIPasteboard.general.string = arrayToCopy.joined(separator: " ")
     }
 
@@ -412,7 +375,7 @@ public class TapTextView: UITextView {
     }
 
     @objc func groupTagSelection() {
-        let movedWords = selectedTagWords
+        let movedWords = viewModel.selectedTags
         guard !movedWords.isEmpty else { return }
 
         // Remove the tags from their current positions (also clears selection).
@@ -433,20 +396,15 @@ public class TapTextView: UITextView {
     }
 
     @objc private func cleanTagSelection() {
-        selectedTagWords.removeAll()
+        viewModel.clear()
         applyHighlighting()
     }
 
     @objc func deleteTagSelection() {
-        let toDelete = selectedTagWords
-        selectedTagWords.removeAll()
+        let newText = viewModel.removingSelectedTags(from: text ?? "")
+        viewModel.clear()
+        text = newText
         applyHighlighting()
-        for tag in toDelete {
-            // Consume one trailing space with the tag so removing a tag from the
-            // middle of a line doesn't leave a double space behind.
-            let pattern = "(?<!\\S)#\(NSRegularExpression.escapedPattern(for: tag))(?!\\S) ?"
-            text = text.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
-        }
     }
 
     @objc private func toolbarInfo() {
