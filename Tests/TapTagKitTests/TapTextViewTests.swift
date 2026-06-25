@@ -43,6 +43,27 @@ final class TapTextViewTests: XCTestCase {
         func announce(_ message: String) { announcements.append(message) }
     }
 
+    func testAccessibility_exposesEachHashtagAsAnActivatableButtonWhileSelecting() {
+        let textView = TapTextView()
+        textView.text = "#swift and #ios"
+
+        // Not selecting: the text view is a single element, no children.
+        XCTAssertNil(textView.accessibilityElements)
+
+        textView.beginSelection()
+        let elements = textView.accessibilityElements as? [UIAccessibilityElement] ?? []
+
+        XCTAssertEqual(elements.map(\.accessibilityLabel), ["#swift", "#ios"])
+        XCTAssertTrue(elements.allSatisfy { $0.accessibilityTraits.contains(.button) })
+
+        // Activating the first element toggles that tag, like a tap.
+        _ = elements.first?.accessibilityActivate()
+        XCTAssertEqual(textView.selectedTags, ["swift"])
+        // Its trait now reflects selection.
+        let refreshed = textView.accessibilityElements as? [UIAccessibilityElement] ?? []
+        XCTAssertTrue(refreshed.first?.accessibilityTraits.contains(.selected) == true)
+    }
+
     func testBeginSelection_removesDuplicatesAutomatically() {
         let textView = TapTextView()
         textView.text = "#swift #swift #ios #IOS #swiftui"

@@ -152,6 +152,7 @@ public class TapTextView: UITextView {
         services.prepareHaptics()
         accessibilityHint = configuration.accessibility.selectionHint
         presentActionBar()
+        postAccessibilityModeChange()
         tagDelegate?.tapTextViewDidStartSelection(self)
     }
 
@@ -163,7 +164,15 @@ public class TapTextView: UITextView {
         setEditingSuspended(false)
         accessibilityHint = nil
         dismissActionBar()
+        postAccessibilityModeChange()
         tagDelegate?.tapTextViewDidFinishSelection(self)
+    }
+
+    /// Tells VoiceOver the element structure changed (single text element ↔
+    /// per-tag buttons) so it re-reads and re-focuses.
+    private func postAccessibilityModeChange() {
+        guard UIAccessibility.isVoiceOverRunning else { return }
+        UIAccessibility.post(notification: .screenChanged, argument: nil)
     }
 
     /// Removes duplicate and invalid hashtags from the text. Run automatically
@@ -335,6 +344,47 @@ public class TapTextView: UITextView {
         services.announce(message)
     }
 
+    // MARK: - Accessibility
+
+    // While selecting, expose each hashtag as its own VoiceOver button instead
+    // of the text view reading as one element.
+    public override var isAccessibilityElement: Bool {
+        get { isSelecting ? false : super.isAccessibilityElement }
+        set { super.isAccessibilityElement = newValue }
+    }
+
+    public override var accessibilityElements: [Any]? {
+        get { isSelecting ? tagAccessibilityElements() : super.accessibilityElements }
+        set { super.accessibilityElements = newValue }
+    }
+
+    private func tagAccessibilityElements() -> [TagAccessibilityElement] {
+        let selected = selectedTags
+        return viewModel.hashtagTokens(in: text ?? "").map { token in
+            TagAccessibilityElement(
+                container: self,
+                word: token.word,
+                frame: accessibilityFrame(for: token.range),
+                isSelected: selected.contains(token.word)
+            ) { [weak self] word in
+                self?.processTappedWord(tappedWord: word)
+            }
+        }
+    }
+
+    private func accessibilityFrame(for range: NSRange) -> CGRect {
+        guard let start = position(from: beginningOfDocument, offset: range.location),
+              let end = position(from: start, offset: range.length),
+              let textRange = textRange(from: start, to: end) else { return .zero }
+        return firstRect(for: textRange)
+    }
+
+    /// Nudges VoiceOver to re-read the tag elements after a selection change.
+    private func refreshAccessibilityIfNeeded() {
+        guard isSelecting, UIAccessibility.isVoiceOverRunning else { return }
+        UIAccessibility.post(notification: .layoutChanged, argument: nil)
+    }
+
     // MARK: - Highlighting
 
     /// Snapshots the caller's styled text so highlighting can be layered over it
@@ -356,6 +406,7 @@ public class TapTextView: UITextView {
         isApplyingHighlight = true
         attributedText = highlighted
         isApplyingHighlight = false
+        refreshAccessibilityIfNeeded()
     }
 
     // MARK: - Tag actions

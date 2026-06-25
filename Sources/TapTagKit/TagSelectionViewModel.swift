@@ -88,6 +88,17 @@ final class TagSelectionViewModel {
         return nil
     }
 
+    /// Every hashtag token in `text` as its word (without `#`) and range —
+    /// used to expose each tag as a VoiceOver element.
+    func hashtagTokens(in text: String) -> [(word: String, range: NSRange)] {
+        guard let regex = try? NSRegularExpression(pattern: Constants.tokenPattern) else { return [] }
+        let ns = text as NSString
+        return regex.matches(in: text, range: NSRange(location: 0, length: ns.length)).compactMap { match in
+            let word = String(ns.substring(with: match.range).dropFirst())
+            return word.isEmpty ? nil : (word, match.range)
+        }
+    }
+
     /// Ranges of every selected tag in `text`, for the view to highlight.
     func highlightRanges(in text: String) -> [NSRange] {
         let full = NSRange(text.startIndex..., in: text)

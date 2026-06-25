@@ -3,6 +3,13 @@
 All notable changes to TapTagKit are documented here.
 This project adheres to [Semantic Versioning](https://semver.org).
 
+## [Unreleased]
+
+### Added
+- **Per-tag VoiceOver:** while a session is active, each hashtag is exposed as
+  its own VoiceOver button whose value reflects selection; activating it toggles
+  the tag like a tap. The core tap-to-select is now operable without sight.
+
 ## [3.1.0] — 2026-06-25
 
 ### Added
