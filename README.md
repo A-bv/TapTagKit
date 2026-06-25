@@ -61,7 +61,7 @@ The text and selection-session state stay synchronized through bindings.
 - **Tidies up on entry** — duplicate and invalid hashtags are removed when a session starts (toggle with `removesDuplicatesOnSelection`).
 - **Safe destructive actions** — Delete asks for confirmation; Done finishes immediately.
 - **Drive it in code** — `selectTag`, `deselectTag`, `groupSelectedTags`, `cleanUpHashtags`, `selectedTagsInOrder`.
-- **English & French out of the box** — labels, captions, and VoiceOver strings ship localized ([demo in French](Assets/demo-fr.gif)); override any string via `Configuration`.
+- **English & French out of the box** — labels, captions, and VoiceOver strings ship localized; override any string via `Configuration`.
 - **Won't trample your text** — fonts, colors, and links survive highlighting; awkward tags like `#c++` are matched whole.
 
 ## Customize
@@ -79,7 +79,7 @@ Selection state and all tag/text logic live in a UIKit-free `TagSelectionViewMod
 
 ## Preview
 
-Open `Sources/TapTagKit/Previews.swift` and switch on the canvas (**Editor › Canvas**) for a live, tappable demo. The animations are reproducible — `Scripts/record-gif.sh` renders `Assets/demo.gif` (English) and `Assets/demo-fr.gif` (French).
+Open `Sources/TapTagKit/Previews.swift` and switch on the canvas (**Editor › Canvas**) for a live, tappable demo. The animation above is reproducible — `Scripts/record-gif.sh` renders it to `Assets/demo.gif`.
 
 ## Requirements & license
 

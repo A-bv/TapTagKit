@@ -26,6 +26,7 @@ final class ReadmeGIFTests: XCTestCase {
         let done: String
     }
 
+    // The demo is rendered in English regardless of the machine's locale.
     private let english = Script(
         language: "en", fileName: "demo.gif",
         intro: "Tap hashtags to select them",
@@ -35,27 +36,17 @@ final class ReadmeGIFTests: XCTestCase {
         delete: "Delete — remove them",
         done: "Done")
 
-    private let french = Script(
-        language: "fr", fileName: "demo-fr.gif",
-        intro: "Touchez des hashtags pour les sélectionner",
-        group: "Grouper — les remonter en haut ↑",
-        deselect: "Désélectionner — tout effacer",
-        pickMore: "Encore quelques-uns",
-        delete: "Supprimer — les retirer",
-        done: "Terminé")
-
     private let tagText = """
     #swift #swiftui #iosdev
     #xcode #wwdc #coding
     #apps #developer #mobile
     """
 
-    func testRenderReadmeGIFs() throws {
+    func testRenderReadmeGIF() throws {
         guard let outputDir = ProcessInfo.processInfo.environment["GIF_OUTPUT_DIR"] else {
-            throw XCTSkip("Set GIF_OUTPUT_DIR (use Scripts/record-gif.sh) to render the GIFs.")
+            throw XCTSkip("Set GIF_OUTPUT_DIR (use Scripts/record-gif.sh) to render the GIF.")
         }
         try render(english, to: outputDir)
-        try render(french, to: outputDir)
     }
 
     private func render(_ script: Script, to outputDir: String) throws {
