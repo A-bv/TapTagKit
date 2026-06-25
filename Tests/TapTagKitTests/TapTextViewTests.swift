@@ -20,11 +20,44 @@ final class TapTextViewTests: XCTestCase {
 
     func testTapTextViewButton_usesTheConfiguredAccessibilityLabel() {
         let textView = TapTextView()
-        textView.configuration = .init(selectButtonAccessibilityLabel: "Choisir les hashtags")
+        var config = TapTextView.Configuration()
+        config.accessibility.selectButtonLabel = "Choisir les hashtags"
+        textView.configuration = config
 
         let button = textView.makeTapTextViewButton()
 
         XCTAssertEqual(button.accessibilityLabel, "Choisir les hashtags")
+    }
+
+    func testToolbar_usesConfiguredAccessibilityLabels() {
+        let textView = TapTextView()
+        var config = TapTextView.Configuration()
+        config.accessibility.copyLabel = "Copier"
+        textView.configuration = config
+        let host = UIViewController()
+
+        textView.addTagSelectorToolBar(viewController: host)
+
+        let labels = host.toolbarItems?.compactMap(\.accessibilityLabel)
+        XCTAssertEqual(labels?.contains("Copier"), true)
+    }
+
+    func testProgrammaticSelection_selectsDeselectsAndClears() {
+        let textView = TapTextView()
+        textView.text = "#sun and #sea"
+
+        textView.selectTag("#sun")          // leading # is tolerated
+        textView.selectTag("sea")
+        XCTAssertEqual(textView.selectedTagsInOrder, ["sun", "sea"])
+
+        textView.selectTag("sun")           // duplicate is a no-op
+        XCTAssertEqual(textView.selectedTagsInOrder, ["sun", "sea"])
+
+        textView.deselectTag("sun")
+        XCTAssertEqual(textView.selectedTagsInOrder, ["sea"])
+
+        textView.clearSelection()
+        XCTAssertTrue(textView.selectedTagsInOrder.isEmpty)
     }
 
     func testTappingAWord_togglesItsSelection() {

@@ -20,33 +20,52 @@ public extension TapTextViewDelegate {
 public class TapTextView: UITextView {
 
     /// UI strings and styling, injectable for localization and theming.
+    /// Properties are mutable, so tweak a single field with e.g.
+    /// `config.accessibility.copyLabel = "…"` without restating the rest.
     public struct Configuration {
         public var toolbarInfoTitle: String
         public var toolbarInfoMessage: String
         public var infoButtonTitle: String
-        public var selectButtonAccessibilityLabel: String
         public var tagHighlightColor: UIColor
         /// Shown while the text view is empty; nil disables the placeholder.
         public var placeholder: String?
         /// Keeps the text content above the keyboard via content insets.
         public var avoidsKeyboard: Bool
+        /// VoiceOver labels, hints, and announcements.
+        public var accessibility: Accessibility
+
+        /// All accessibility-facing strings, grouped so localization lives in
+        /// one place. Announcements are closures so callers control wording.
+        public struct Accessibility {
+            public var selectButtonLabel = "Select hashtags"
+            public var copyLabel = "Copy selected hashtags"
+            public var cutLabel = "Cut selected hashtags"
+            public var groupLabel = "Group selected hashtags at top"
+            public var deselectLabel = "Deselect all hashtags"
+            public var deleteLabel = "Delete selected hashtags"
+            public var infoLabel = "About these actions"
+            public var selectionHint = "Double tap a hashtag to select it."
+            public var didSelectAnnouncement: (_ tag: String) -> String = { "Selected \($0)" }
+            public var didDeselectAnnouncement: (_ tag: String) -> String = { "Deselected \($0)" }
+            public init() {}
+        }
 
         public init(
             toolbarInfoTitle: String = "Actions on selected hashtags",
             toolbarInfoMessage: String = "Copy, cut, group, deselect, or delete every selected hashtag at once.",
             infoButtonTitle: String = "OK",
-            selectButtonAccessibilityLabel: String = "Select hashtags",
             tagHighlightColor: UIColor = UIColor(red: 0.808, green: 0.027, blue: 0.333, alpha: 1),
             placeholder: String? = nil,
-            avoidsKeyboard: Bool = false
+            avoidsKeyboard: Bool = false,
+            accessibility: Accessibility = Accessibility()
         ) {
             self.toolbarInfoTitle = toolbarInfoTitle
             self.toolbarInfoMessage = toolbarInfoMessage
             self.infoButtonTitle = infoButtonTitle
-            self.selectButtonAccessibilityLabel = selectButtonAccessibilityLabel
             self.tagHighlightColor = tagHighlightColor
             self.placeholder = placeholder
             self.avoidsKeyboard = avoidsKeyboard
+            self.accessibility = accessibility
         }
     }
 
@@ -57,6 +76,38 @@ public class TapTextView: UITextView {
 
     /// The tag words currently selected (without the `#` prefix).
     public var selectedTags: Set<String> { Set(selectedTagWords) }
+
+    /// The selected tag words in the order they were selected.
+    public var selectedTagsInOrder: [String] { selectedTagWords }
+
+    /// Whether a tag-selection session is currently active.
+    public var isSelecting: Bool { tapGestureRecognizer.isEnabled }
+
+    /// Selects `tag` (with or without a leading `#`) and highlights it.
+    public func selectTag(_ tag: String) {
+        let word = normalizedTag(tag)
+        guard !word.isEmpty, !selectedTagWords.contains(word) else { return }
+        selectedTagWords.append(word)
+        tagDelegate?.tapTextView(self, didSelect: word)
+        announce(word, selected: true)
+        applyHighlighting()
+    }
+
+    /// Removes `tag` from the selection.
+    public func deselectTag(_ tag: String) {
+        guard let index = selectedTagWords.firstIndex(of: normalizedTag(tag)) else { return }
+        let word = selectedTagWords.remove(at: index)
+        tagDelegate?.tapTextView(self, didDeselect: word)
+        announce(word, selected: false)
+        applyHighlighting()
+    }
+
+    /// Clears the whole selection.
+    public func clearSelection() { cleanTagSelection() }
+
+    private func normalizedTag(_ tag: String) -> String {
+        tag.hasPrefix("#") ? String(tag.dropFirst()) : tag
+    }
 
     // MARK: - Init
 
@@ -98,9 +149,16 @@ public class TapTextView: UITextView {
         installKeyboardAvoidanceIfNeeded()
     }
 
+    private var placeholderObserverInstalled = false
+
     private func installPlaceholderIfNeeded() {
         guard let placeholder = configuration.placeholder else {
             placeholderLabel.removeFromSuperview()
+            if placeholderObserverInstalled {
+                placeholderObserverInstalled = false
+                NotificationCenter.default.removeObserver(
+                    self, name: UITextView.textDidChangeNotification, object: self)
+            }
             return
         }
 
@@ -108,10 +166,16 @@ public class TapTextView: UITextView {
         placeholderLabel.font = .italicSystemFont(ofSize: font?.pointSize ?? UIFont.labelFontSize)
         placeholderLabel.textColor = .placeholderText
         placeholderLabel.sizeToFit()
-        placeholderLabel.frame.origin = CGPoint(x: 5, y: (font?.pointSize ?? UIFont.labelFontSize) / 2)
+        // Align with the real text origin instead of a magic inset.
+        placeholderLabel.frame.origin = CGPoint(
+            x: textContainerInset.left + textContainer.lineFragmentPadding,
+            y: textContainerInset.top)
 
         if placeholderLabel.superview == nil {
             addSubview(placeholderLabel)
+        }
+        if !placeholderObserverInstalled {
+            placeholderObserverInstalled = true
             NotificationCenter.default.addObserver(
                 self, selector: #selector(refreshPlaceholder),
                 name: UITextView.textDidChangeNotification, object: self)
@@ -173,7 +237,7 @@ public class TapTextView: UITextView {
         activateButton = UIBarButtonItem(
             image: UIImage(systemName: "hand.point.up.left"),
             style: .plain, target: self, action: #selector(startTagSelection))
-        activateButton.accessibilityLabel = configuration.selectButtonAccessibilityLabel
+        activateButton.accessibilityLabel = configuration.accessibility.selectButtonLabel
         return activateButton
     }
 
@@ -183,6 +247,7 @@ public class TapTextView: UITextView {
         tapGestureRecognizer.isEnabled = true
         isEditable = false
         isSelectable = false
+        accessibilityHint = configuration.accessibility.selectionHint
         tagDelegate?.tapTextViewDidStartSelection(self)
         activateButton.isEnabled = false
     }
@@ -193,6 +258,7 @@ public class TapTextView: UITextView {
         isEditable = true
         isSelectable = true
         firstTimeGrouped = false
+        accessibilityHint = nil
         tagDelegate?.tapTextViewDidFinishSelection(self)
         activateButton.isEnabled = true
     }
@@ -205,14 +271,19 @@ public class TapTextView: UITextView {
 
     // MARK: - Toolbar
 
-    private func makeToolbarItems() -> [UIBarButtonItem] {
+    /// The selection actions as toolbar items: 6 buttons interleaved with
+    /// flexible spacers, ending in a Done button. Public so callers can place
+    /// them anywhere (a custom `UIToolbar`, an input accessory view) rather than
+    /// only on the host's `toolbarItems`.
+    public func makeToolbarItems() -> [UIBarButtonItem] {
+        let a11y = configuration.accessibility
         let buttons: [(symbol: String, action: Selector, label: String)] = [
-            ("doc.on.doc", #selector(copyTagSelection), "Copy selected hashtags"),
-            ("scissors", #selector(cutTagSelection), "Cut selected hashtags"),
-            ("square.grid.2x2", #selector(groupTagSelection), "Group selected hashtags at top"),
-            ("clear", #selector(cleanTagSelection), "Deselect all hashtags"),
-            ("delete.right", #selector(deleteTagSelection), "Delete selected hashtags"),
-            ("questionmark.circle.fill", #selector(toolbarInfo), "About these actions"),
+            ("doc.on.doc", #selector(copyTagSelection), a11y.copyLabel),
+            ("scissors", #selector(cutTagSelection), a11y.cutLabel),
+            ("square.grid.2x2", #selector(groupTagSelection), a11y.groupLabel),
+            ("clear", #selector(cleanTagSelection), a11y.deselectLabel),
+            ("delete.right", #selector(deleteTagSelection), a11y.deleteLabel),
+            ("questionmark.circle.fill", #selector(toolbarInfo), a11y.infoLabel),
         ]
 
         var toolbar: [UIBarButtonItem] = []
@@ -269,11 +340,21 @@ public class TapTextView: UITextView {
         if let index = selectedTagWords.firstIndex(of: tappedWord) {
             selectedTagWords.remove(at: index)
             tagDelegate?.tapTextView(self, didDeselect: tappedWord)
+            announce(tappedWord, selected: false)
         } else {
             selectedTagWords.append(tappedWord)
             tagDelegate?.tapTextView(self, didSelect: tappedWord)
+            announce(tappedWord, selected: true)
         }
         applyHighlighting()
+    }
+
+    /// Posts a VoiceOver announcement so selection changes aren't silent.
+    private func announce(_ tag: String, selected: Bool) {
+        let a11y = configuration.accessibility
+        let message = selected ? a11y.didSelectAnnouncement("#\(tag)")
+                               : a11y.didDeselectAnnouncement("#\(tag)")
+        UIAccessibility.post(notification: .announcement, argument: message)
     }
 
     /// Snapshots the caller's styled text so highlighting can be layered on top
