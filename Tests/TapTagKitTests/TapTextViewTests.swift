@@ -4,17 +4,14 @@ import XCTest
 @MainActor
 final class TapTextViewTests: XCTestCase {
 
-    func testToolbar_hasFiveLabeledActionsAndDone() {
+    func testActionBar_hasSixCaptionedButtons() {
         let textView = TapTextView()
-        let items = textView.makeSelectionToolbar().items ?? []
+        let buttons = textView.makeActionBar().buttons
 
-        // 5 icon actions, each labeled for VoiceOver.
-        let actions = items.filter { $0.image != nil }
-        XCTAssertEqual(actions.count, 5)
-        XCTAssertTrue(actions.allSatisfy { $0.accessibilityLabel != nil })
-
-        // A trailing Done button.
-        XCTAssertTrue(items.contains { $0.title == "Done" })
+        // copy, cut, group, deselect, delete, done — each captioned/labeled.
+        XCTAssertEqual(buttons.count, 6)
+        XCTAssertTrue(buttons.allSatisfy { $0.accessibilityLabel != nil })
+        XCTAssertTrue(buttons.contains { $0.configuration?.title == "Done" })
     }
 
     func testTapTextViewButton_usesTheConfiguredAccessibilityLabel() {
@@ -28,14 +25,23 @@ final class TapTextViewTests: XCTestCase {
         XCTAssertEqual(button.accessibilityLabel, "Choisir les hashtags")
     }
 
-    func testToolbar_usesConfiguredAccessibilityLabels() {
+    func testActionBar_usesConfiguredLabels() {
         let textView = TapTextView()
         var config = TapTextView.Configuration()
         config.accessibility.copyLabel = "Copier"
         textView.configuration = config
 
-        let labels = textView.makeSelectionToolbar().items?.compactMap(\.accessibilityLabel)
-        XCTAssertEqual(labels?.contains("Copier"), true)
+        let titles = textView.makeActionBar().buttons.compactMap { $0.configuration?.title }
+        XCTAssertTrue(titles.contains("Copier"))
+    }
+
+    func testCleanUpHashtags_removesDuplicates() {
+        let textView = TapTextView()
+        textView.text = "#sun #sun #sea"
+
+        textView.cleanUpHashtags()
+
+        XCTAssertEqual(textView.text, "#sun #sea")
     }
 
     func testProgrammaticSelection_selectsDeselectsAndClears() {

@@ -13,7 +13,10 @@ private final class PreviewViewController: UIViewController {
         textView.configuration = config
 
         textView.font = .preferredFont(forTextStyle: .body)
-        textView.text = "#swift makes #iOS fun.\nShare #swift tips, learn #swift, build #iOS apps."
+        textView.text = """
+        #swift #swiftui #iosdev #xcode #wwdc
+        #programming #mobile #apps #coding #developer
+        """
         textView.isScrollEnabled = false
         textView.textContainerInset = UIEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
         textView.layer.cornerRadius = 12
@@ -52,9 +55,9 @@ private final class PreviewViewController: UIViewController {
             hint.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -20),
         ])
 
-        // Open a session so the self-contained toolbar shows, with #swift lit up.
+        // Open a session so the self-contained bar shows, with a few tags lit up.
         tapTextView.beginSelection()
-        tapTextView.selectTag("swift")
+        ["swift", "iosdev", "coding"].forEach(tapTextView.selectTag)
     }
 }
 

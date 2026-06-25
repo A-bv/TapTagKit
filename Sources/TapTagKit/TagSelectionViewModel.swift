@@ -103,6 +103,37 @@ final class TagSelectionViewModel {
         return hashtagList + separator + body
     }
 
+    /// `text` with invalid hashtags and duplicate hashtags removed (keeping the
+    /// first occurrence of each, compared case-insensitively). A hashtag is
+    /// valid when `#` is followed by a letter, digit, or underscore.
+    func cleanedText(_ text: String) -> String {
+        let ns = text as NSString
+        guard let regex = try? NSRegularExpression(pattern: "#\\S+") else { return text }
+
+        var seen = Set<String>()
+        var rangesToRemove: [NSRange] = []
+        regex.enumerateMatches(in: text, range: NSRange(location: 0, length: ns.length)) { match, _, _ in
+            guard let match else { return }
+            let word = ns.substring(with: match.range).dropFirst()
+            let isValid = word.unicodeScalars.first.map {
+                CharacterSet.alphanumerics.contains($0) || $0 == "_"
+            } ?? false
+
+            let isDuplicate = isValid && !seen.insert(word.lowercased()).inserted
+            guard !isValid || isDuplicate else { return }
+
+            // Swallow one trailing space so removal doesn't leave a double space.
+            var range = match.range
+            let after = range.location + range.length
+            if after < ns.length, ns.character(at: after) == 32 { range.length += 1 }
+            rangesToRemove.append(range)
+        }
+
+        let result = NSMutableString(string: text)
+        for range in rangesToRemove.reversed() { result.deleteCharacters(in: range) }
+        return result as String
+    }
+
     // MARK: - Helpers
 
     private func normalized(_ tag: String) -> String {

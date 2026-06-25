@@ -27,15 +27,20 @@ public class TapTextView: UITextView {
         public var selectedTagTextColor: UIColor
         public var accessibility: Accessibility
 
+        /// Short labels double as the button captions and the VoiceOver labels,
+        /// so there's one localizable string per action.
         public struct Accessibility {
             public var selectButtonLabel = "Select hashtags"
-            public var copyLabel = "Copy selected hashtags"
-            public var cutLabel = "Cut selected hashtags"
-            public var groupLabel = "Group selected hashtags at top"
-            public var deselectLabel = "Deselect all hashtags"
-            public var deleteLabel = "Delete selected hashtags"
+            public var copyLabel = "Copy"
+            public var cutLabel = "Cut"
+            public var groupLabel = "Group"
+            public var deselectLabel = "Deselect"
+            public var deleteLabel = "Delete"
             public var doneLabel = "Done"
             public var selectionHint = "Double tap a hashtag to select it."
+            /// Shown on the confirmation alert when finishing with edits made.
+            public var keepChangesTitle = "Keep your changes?"
+            public var undoLabel = "Undo"
             public var didSelectAnnouncement: (_ tag: String) -> String = { "Selected \($0)" }
             public var didDeselectAnnouncement: (_ tag: String) -> String = { "Deselected \($0)" }
             public init() {}
@@ -56,6 +61,9 @@ public class TapTextView: UITextView {
         didSet { applyHighlighting() }
     }
     public weak var tagDelegate: TapTextViewDelegate?
+
+    /// Removes duplicate/invalid hashtags automatically when a session starts.
+    public var removesDuplicatesOnSelection = true
 
     /// The tag words currently selected (without the `#` prefix).
     public var selectedTags: Set<String> { Set(viewModel.selectedTags) }
@@ -91,6 +99,8 @@ public class TapTextView: UITextView {
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .rigid)
     private var tapGestureRecognizer = UITapGestureRecognizer()
     private var activateButton = UIBarButtonItem()
+    /// Text captured when the session began, restored by Undo.
+    private var initialText: String?
     /// Pasteboard used by copy/cut. Injectable so tests avoid the shared global.
     var pasteboard: UIPasteboard = .general
 
@@ -112,26 +122,65 @@ public class TapTextView: UITextView {
         return activateButton
     }
 
-    /// Starts a session: taps select hashtags, editing is suspended, and the
-    /// action toolbar appears.
+    /// Starts a session: snapshots the text for Undo, removes duplicate/invalid
+    /// hashtags, suspends editing, and shows the action bar.
     @objc public func beginSelection() {
         guard !isSelecting else { return }
+        initialText = text
         resignFirstResponder()
+        if removesDuplicatesOnSelection { cleanUpHashtags() }
         setEditingSuspended(true)
         feedbackGenerator.prepare()
         accessibilityHint = configuration.accessibility.selectionHint
-        presentToolbar()
+        presentActionBar()
         tagDelegate?.tapTextViewDidStartSelection(self)
     }
 
-    /// Ends the session: clears the selection, hides the toolbar, restores editing.
+    /// Ends the session immediately: clears the selection, hides the bar, and
+    /// restores editing. (The Done button routes through `confirmEndSelection`.)
     @objc public func endSelection() {
         clearSelection()
         viewModel.resetGrouping()
         setEditingSuspended(false)
         accessibilityHint = nil
-        dismissToolbar()
+        dismissActionBar()
         tagDelegate?.tapTextViewDidFinishSelection(self)
+    }
+
+    /// Removes duplicate and invalid hashtags from the text. Run automatically
+    /// when a session starts; also callable on its own.
+    public func cleanUpHashtags() {
+        text = viewModel.cleanedText(text ?? "")
+        applyHighlighting()
+    }
+
+    /// The Done button's action: if edits were made, offer Undo (restore the
+    /// text as it was when the session began) or Done (keep them).
+    @objc private func confirmEndSelection() {
+        guard text != initialText, let presenter = owningViewController else {
+            endSelection()
+            return
+        }
+        let a11y = configuration.accessibility
+        let alert = UIAlertController(title: a11y.keepChangesTitle, message: nil, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: a11y.undoLabel, style: .destructive) { [weak self] _ in
+            guard let self else { return }
+            if let initialText { text = initialText }
+            endSelection()
+        })
+        alert.addAction(UIAlertAction(title: a11y.doneLabel, style: .default) { [weak self] _ in
+            self?.endSelection()
+        })
+        presenter.present(alert, animated: true)
+    }
+
+    private var owningViewController: UIViewController? {
+        var responder: UIResponder? = self
+        while let next = responder?.next {
+            if let viewController = next as? UIViewController { return viewController }
+            responder = next
+        }
+        return nil
     }
 
     private func setEditingSuspended(_ suspended: Bool) {
@@ -141,70 +190,53 @@ public class TapTextView: UITextView {
         activateButton.isEnabled = !suspended
     }
 
-    // MARK: - Self-contained toolbar
+    // MARK: - Self-contained action bar
 
-    /// The action toolbar while a session is active; removed when it ends, so a
+    /// The captioned bar while a session is active; removed when it ends, so a
     /// discarded text view never leaves one behind.
-    private var activeToolbar: UIToolbar?
+    private var activeBar: TagActionBar?
 
-    private func presentToolbar() {
-        guard activeToolbar == nil, let host = window ?? superview else { return }
-        let toolbar = makeSelectionToolbar()
-        activeToolbar = toolbar
-        host.addSubview(toolbar)
+    private func presentActionBar() {
+        guard activeBar == nil, let host = window ?? superview else { return }
+        let bar = makeActionBar()
+        activeBar = bar
+        host.addSubview(bar)
+        let safe = host.safeAreaLayoutGuide
         NSLayoutConstraint.activate([
-            toolbar.leadingAnchor.constraint(equalTo: host.leadingAnchor),
-            toolbar.trailingAnchor.constraint(equalTo: host.trailingAnchor),
-            toolbar.bottomAnchor.constraint(equalTo: host.safeAreaLayoutGuide.bottomAnchor),
+            bar.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: 12),
+            bar.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -12),
+            bar.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -8),
         ])
     }
 
-    private func dismissToolbar() {
-        activeToolbar?.removeFromSuperview()
-        activeToolbar = nil
+    private func dismissActionBar() {
+        activeBar?.removeFromSuperview()
+        activeBar = nil
     }
 
     public override func willMove(toWindow newWindow: UIWindow?) {
         super.willMove(toWindow: newWindow)
-        if newWindow == nil { dismissToolbar() }
+        if newWindow == nil { dismissActionBar() }
     }
 
-    /// Builds the action toolbar. Internal so tests can inspect its items.
-    func makeSelectionToolbar() -> UIToolbar {
+    /// Builds the captioned action bar. Internal so tests can inspect it.
+    func makeActionBar() -> TagActionBar {
         let a11y = configuration.accessibility
-        let actions: [(symbol: String, selector: Selector, label: String, tint: UIColor?)] = [
-            ("doc.on.doc", #selector(copySelectedTags), a11y.copyLabel, nil),
-            ("scissors", #selector(cutSelectedTags), a11y.cutLabel, nil),
-            ("square.grid.2x2", #selector(groupSelectedTags), a11y.groupLabel, nil),
-            ("xmark.circle", #selector(clearSelection), a11y.deselectLabel, nil),
-            ("trash", #selector(deleteSelectedTags), a11y.deleteLabel, .systemRed),
+        let items: [TagActionBar.Item] = [
+            .init(symbol: "doc.on.doc", title: a11y.copyLabel, tint: nil, isProminent: false,
+                  handler: { [weak self] in self?.copySelectedTags() }),
+            .init(symbol: "scissors", title: a11y.cutLabel, tint: nil, isProminent: false,
+                  handler: { [weak self] in self?.cutSelectedTags() }),
+            .init(symbol: "square.grid.2x2", title: a11y.groupLabel, tint: nil, isProminent: false,
+                  handler: { [weak self] in self?.groupSelectedTags() }),
+            .init(symbol: "xmark.circle", title: a11y.deselectLabel, tint: nil, isProminent: false,
+                  handler: { [weak self] in self?.clearSelection() }),
+            .init(symbol: "trash", title: a11y.deleteLabel, tint: .systemRed, isProminent: false,
+                  handler: { [weak self] in self?.deleteSelectedTags() }),
+            .init(symbol: "checkmark", title: a11y.doneLabel, tint: nil, isProminent: true,
+                  handler: { [weak self] in self?.confirmEndSelection() }),
         ]
-
-        var items: [UIBarButtonItem] = []
-        for action in actions {
-            items.append(.flexibleSpace())
-            items.append(makeActionItem(action))
-        }
-        items.append(.flexibleSpace())
-        items.append(UIBarButtonItem(
-            title: a11y.doneLabel, style: .done, target: self, action: #selector(endSelection)))
-
-        let toolbar = UIToolbar()
-        toolbar.translatesAutoresizingMaskIntoConstraints = false
-        toolbar.tintColor = configuration.tagHighlightColor
-        toolbar.items = items
-        return toolbar
-    }
-
-    private func makeActionItem(
-        _ action: (symbol: String, selector: Selector, label: String, tint: UIColor?)
-    ) -> UIBarButtonItem {
-        let item = UIBarButtonItem(
-            image: UIImage(systemName: action.symbol),
-            style: .plain, target: self, action: action.selector)
-        item.accessibilityLabel = action.label
-        item.tintColor = action.tint
-        return item
+        return TagActionBar(items: items, tint: configuration.tagHighlightColor)
     }
 
     // MARK: - Tapping

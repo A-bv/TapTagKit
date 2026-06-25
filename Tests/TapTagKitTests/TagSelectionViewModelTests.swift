@@ -52,6 +52,13 @@ final class TagSelectionViewModelTests: XCTestCase {
         XCTAssertEqual(result, "and #sea today")
     }
 
+    func testCleanedText_dropsInvalidAndCaseInsensitiveDuplicates() {
+        let vm = TagSelectionViewModel()
+
+        // "#Sun" duplicates "#sun" (case-insensitive); "#!" is invalid.
+        XCTAssertEqual(vm.cleanedText("#sun #Sun #sea #! end"), "#sun #sea end")
+    }
+
     func testHashtagList_joinsSelectedTagsWithHashes() {
         let vm = TagSelectionViewModel()
         _ = vm.select("sun")

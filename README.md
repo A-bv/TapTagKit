@@ -33,10 +33,16 @@ drive it yourself with `beginSelection()` / `endSelection()`.
 
 ## What you get
 
+<p align="center">
+  <img src="Assets/action-bar.png" alt="The captioned action bar: Copy, Cut, Group, Deselect, Delete, Done" width="420">
+</p>
+
 - **One tap, every match** — selecting `#swift` highlights it everywhere at once.
-- **Self-managing toolbar** — copy · cut · group-to-top · deselect · delete · done.
-- **Drive it in code** — `selectTag`, `deselectTag`, `groupSelectedTags`, `selectedTagsInOrder`.
-- **Yours to style** — highlight color and every VoiceOver string via `Configuration`.
+- **Self-managing captioned bar** — copy · cut · group-to-top · deselect · delete · done, each with a label; appears and hides itself.
+- **Tidies up on entry** — duplicate and invalid hashtags are removed when a session starts (toggle with `removesDuplicatesOnSelection`).
+- **Undo to where you started** — tap Done and choose Undo to restore the original text.
+- **Drive it in code** — `selectTag`, `deselectTag`, `groupSelectedTags`, `cleanUpHashtags`, `selectedTagsInOrder`.
+- **Yours to style** — highlight color and every label/caption via `Configuration` (localize once, used for the caption *and* VoiceOver).
 - **Won't trample your text** — fonts, colors, and links survive highlighting; awkward tags like `#c++` are matched whole.
 
 ## Customize

@@ -5,7 +5,19 @@ This project adheres to [Semantic Versioning](https://semver.org).
 
 ## [Unreleased]
 
+### Added
+- **Captioned action bar:** the bar is now a grouped, rounded card whose
+  buttons pair an icon with a small caption (so the actions are self-explanatory
+  and the info "?" button is unnecessary). Built as `TagActionBar`.
+- **Undo to initial state:** tapping Done offers Undo (restore the text as it
+  was when the session began) or Done (keep the edits).
+- **Hashtag clean-up:** `cleanUpHashtags()` removes duplicate (case-insensitive)
+  and invalid hashtags; runs automatically on `beginSelection()` unless
+  `removesDuplicatesOnSelection` is set to `false`.
+
 ### Changed
+- Action labels are short captions that double as VoiceOver labels (one string
+  per action in `Configuration.accessibility`).
 - **Self-contained toolbar:** the selection actions now live in a `UIToolbar`
   the view shows/hides itself. `addTagSelectorToolBar(viewController:)` is gone
   and the delegate is no longer needed to reveal the bar — just
