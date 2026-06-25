@@ -3,7 +3,7 @@
 All notable changes to TapTagKit are documented here.
 This project adheres to [Semantic Versioning](https://semver.org).
 
-## [Unreleased]
+## [3.2.0] — 2026-06-25
 
 ### Added
 - **Per-tag VoiceOver:** while a session is active, each hashtag is exposed as
