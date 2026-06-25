@@ -239,30 +239,28 @@ public class TapTextView: UITextView {
 
     @objc private func tapResponse(recognizer: UITapGestureRecognizer) {
         let location = recognizer.location(in: self)
+        guard let tapPosition = closestPosition(to: location) else { return }
 
-        guard
-            let tapPosition = closestPosition(to: location),
-            let textRange = tokenizer.rangeEnclosingPosition(
-                tapPosition, with: .word, inDirection: UITextDirection(rawValue: 1)),
-            isHashtag(textRange)
-        else {
-            return
-        }
+        let index = offset(from: beginningOfDocument, to: tapPosition)
+        guard let word = hashtagWord(at: index) else { return }
 
         UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
-        processTappedWord(tappedWord: text(in: textRange))
+        processTappedWord(tappedWord: word)
     }
 
-    /// Word ranges from the tokenizer exclude the leading `#`, so a tapped word
-    /// counts as a tag only when the character right before it is `#`.
-    private func isHashtag(_ wordRange: UITextRange) -> Bool {
-        guard
-            let hashStart = position(from: wordRange.start, offset: -1),
-            let hashRange = textRange(from: hashStart, to: wordRange.start)
-        else {
-            return false
+    /// The hashtag word (without `#`) whose token contains `index`, or nil if
+    /// the tap landed outside a hashtag. A hashtag is `#` up to the next
+    /// whitespace, so multi-character tags like `#c++` are captured whole —
+    /// unlike word-granularity tokenizing, which stops at the first `+`.
+    func hashtagWord(at index: Int) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: "#\\S+") else { return nil }
+        let source = text ?? ""
+        let ns = source as NSString
+        for match in regex.matches(in: source, range: NSRange(location: 0, length: ns.length))
+        where NSLocationInRange(index, match.range) {
+            return String(ns.substring(with: match.range).dropFirst())
         }
-        return text(in: hashRange) == "#"
+        return nil
     }
 
     func processTappedWord(tappedWord: String?) {
@@ -286,11 +284,11 @@ public class TapTextView: UITextView {
         baseText = attributedText ?? NSAttributedString(string: text ?? "")
     }
 
-    /// Matches `#tag` only when it is not immediately followed by another word
-    /// character, so `#sun` never matches inside `#sunny` while tags ending in
-    /// punctuation (e.g. `#c++`) still match — unlike a trailing `\b`.
+    /// Matches `#tag` only as a whole whitespace-delimited token, so `#sun`
+    /// never matches inside `#sunny` or `a#sun`, while punctuation tags like
+    /// `#c++` still match. Mirrors how `hashtagWord(at:)` reads tokens.
     private func tagRegex(for tag: String) -> NSRegularExpression? {
-        let pattern = "#\(NSRegularExpression.escapedPattern(for: tag))(?![\\w])"
+        let pattern = "(?<!\\S)#\(NSRegularExpression.escapedPattern(for: tag))(?!\\S)"
         return try? NSRegularExpression(pattern: pattern)
     }
 
@@ -331,9 +329,10 @@ public class TapTextView: UITextView {
         // Remove the tags from their current positions (also clears selection).
         deleteTagSelection()
 
-        // Re-insert them, grouped, at the top — separated from the rest of the
-        // text by a blank line on the first grouping only.
-        let separator = firstTimeGrouped ? "" : "\n\n"
+        // Re-insert them, grouped, at the top. The first grouping pushes the
+        // body down with a blank line; later groupings only need a space so the
+        // new tags don't fuse onto the previously grouped ones (#y#x).
+        let separator = firstTimeGrouped ? " " : "\n\n"
         firstTimeGrouped = true
         let grouped = movedWords.map { "#" + $0 }.joined(separator: " ")
         text = grouped + separator + (text ?? "")
@@ -356,7 +355,7 @@ public class TapTextView: UITextView {
         for tag in toDelete {
             // Consume one trailing space with the tag so removing a tag from the
             // middle of a line doesn't leave a double space behind.
-            let pattern = "#\(NSRegularExpression.escapedPattern(for: tag))(?![\\w]) ?"
+            let pattern = "(?<!\\S)#\(NSRegularExpression.escapedPattern(for: tag))(?!\\S) ?"
             text = text.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
         }
     }

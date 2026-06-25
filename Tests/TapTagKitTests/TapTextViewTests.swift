@@ -102,6 +102,33 @@ final class TapTextViewTests: XCTestCase {
         XCTAssertTrue(foundLink, "Highlighting must not discard existing attributes")
     }
 
+    func testHashtagWord_capturesTheWholeTokenIncludingPunctuation() {
+        let textView = TapTextView()
+        textView.text = "#c++ and #sea"
+
+        // Index 1 sits inside "#c++"; the whole token is returned, not just "c".
+        XCTAssertEqual(textView.hashtagWord(at: 1), "c++")
+        // Index 10 sits inside "#sea".
+        XCTAssertEqual(textView.hashtagWord(at: 10), "sea")
+        // Index 6 sits inside the plain word "and" — not a hashtag.
+        XCTAssertNil(textView.hashtagWord(at: 6))
+    }
+
+    func testGroup_repeatedGroupingKeepsTagsSeparated() {
+        let textView = TapTextView()
+        textView.text = "a #x b #y c"
+
+        textView.processTappedWord(tappedWord: "x")
+        textView.groupTagSelection()                 // "#x\n\na b #y c"
+        textView.processTappedWord(tappedWord: "x")  // deselect, leaving #x at the top
+        textView.processTappedWord(tappedWord: "y")
+        textView.groupTagSelection()                 // #y must land above #x, not fuse
+
+        XCTAssertTrue(textView.text.hasPrefix("#y #x"),
+                      "Repeated grouping must not fuse tags, got: \(textView.text ?? "")")
+        XCTAssertFalse(textView.text.contains("#y#x"))
+    }
+
     func testGroup_movesSelectedTagsToTopInTapOrder() {
         let textView = TapTextView()
         textView.text = "alpha #one mid #two end #three"
