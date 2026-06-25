@@ -136,6 +136,8 @@ public class TapTextView: UITextView {
     /// Highlighting is rebuilt from this each time so user attributes survive.
     private var baseText = NSAttributedString()
     private var isApplyingHighlight = false
+    private var regexCache = [String: NSRegularExpression]()
+    private let feedbackGenerator = UIImpactFeedbackGenerator(style: .rigid)
     private var tapGestureRecognizer = UITapGestureRecognizer()
     private var firstTimeGrouped = false
     private var activateButton = UIBarButtonItem()
@@ -247,6 +249,7 @@ public class TapTextView: UITextView {
         tapGestureRecognizer.isEnabled = true
         isEditable = false
         isSelectable = false
+        feedbackGenerator.prepare()
         accessibilityHint = configuration.accessibility.selectionHint
         tagDelegate?.tapTextViewDidStartSelection(self)
         activateButton.isEnabled = false
@@ -315,7 +318,8 @@ public class TapTextView: UITextView {
         let index = offset(from: beginningOfDocument, to: tapPosition)
         guard let word = hashtagWord(at: index) else { return }
 
-        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+        feedbackGenerator.impactOccurred()
+        feedbackGenerator.prepare()   // keep the Taptic Engine warm for the next tap
         processTappedWord(tappedWord: word)
     }
 
@@ -368,9 +372,13 @@ public class TapTextView: UITextView {
     /// Matches `#tag` only as a whole whitespace-delimited token, so `#sun`
     /// never matches inside `#sunny` or `a#sun`, while punctuation tags like
     /// `#c++` still match. Mirrors how `hashtagWord(at:)` reads tokens.
+    /// Compiled regexes are cached since the pattern depends only on the tag.
     private func tagRegex(for tag: String) -> NSRegularExpression? {
+        if let cached = regexCache[tag] { return cached }
         let pattern = "(?<!\\S)#\(NSRegularExpression.escapedPattern(for: tag))(?!\\S)"
-        return try? NSRegularExpression(pattern: pattern)
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
+        regexCache[tag] = regex
+        return regex
     }
 
     private func applyHighlighting() {

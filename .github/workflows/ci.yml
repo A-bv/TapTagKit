@@ -11,8 +11,14 @@ concurrency:
 
 jobs:
   build-test:
-    name: Build & Test (iOS Simulator)
+    name: Build & Test
     runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        destination:
+          - 'platform=iOS Simulator,name=iPhone 16,OS=latest'
+          - 'platform=iOS Simulator,name=iPhone SE (3rd generation),OS=latest'
     steps:
       - uses: actions/checkout@v4
 
@@ -24,5 +30,5 @@ jobs:
           set -o pipefail
           xcodebuild test \
             -scheme TapTagKit \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -destination '${{ matrix.destination }}' \
             CODE_SIGNING_ALLOWED=NO
