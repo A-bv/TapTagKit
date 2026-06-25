@@ -1,21 +1,29 @@
+import SwiftUI
 import XCTest
 @testable import TapTagKit
 
 @MainActor
 final class TapTextViewTests: XCTestCase {
 
-    func testToolbar_installsAllActionsOnTheHost() {
+    func testActionBar_hasSixCaptionedItems() {
         let textView = TapTextView()
-        let host = UIViewController()
+        let items = textView.makeActionBar().items
 
-        textView.addTagSelectorToolBar(viewController: host)
+        // copy, cut, group, deselect, delete, done — each captioned/labeled.
+        XCTAssertEqual(items.count, 6)
+        XCTAssertTrue(items.allSatisfy { !$0.title.isEmpty })
+        XCTAssertTrue(items.contains { $0.title == "Done" && $0.confirmationTitle == nil })
+        XCTAssertTrue(items.contains { $0.title == "Delete" && $0.confirmationTitle == "Are you sure?" })
+    }
 
-        // 6 action buttons, 6 flexible spacers, 1 done button.
-        XCTAssertEqual(host.toolbarItems?.count, 13)
+    func testDoneAction_endsSelectionWithoutConfirmation() {
+        let textView = TapTextView()
+        textView.beginSelection()
+        let done = textView.makeActionBar().items.first { $0.title == "Done" }
 
-        // Every action button is labeled for VoiceOver.
-        let labeled = host.toolbarItems?.filter { $0.accessibilityLabel != nil }
-        XCTAssertEqual(labeled?.count, 6)
+        done?.handler()
+
+        XCTAssertFalse(textView.isSelecting)
     }
 
     func testTapTextViewButton_usesTheConfiguredAccessibilityLabel() {
@@ -29,17 +37,44 @@ final class TapTextViewTests: XCTestCase {
         XCTAssertEqual(button.accessibilityLabel, "Choisir les hashtags")
     }
 
-    func testToolbar_usesConfiguredAccessibilityLabels() {
+    func testActionBar_usesConfiguredLabels() {
         let textView = TapTextView()
         var config = TapTextView.Configuration()
         config.accessibility.copyLabel = "Copier"
         textView.configuration = config
-        let host = UIViewController()
 
-        textView.addTagSelectorToolBar(viewController: host)
+        let titles = textView.makeActionBar().items.map(\.title)
+        XCTAssertTrue(titles.contains("Copier"))
+    }
 
-        let labels = host.toolbarItems?.compactMap(\.accessibilityLabel)
-        XCTAssertEqual(labels?.contains("Copier"), true)
+    func testSwiftUIAdapter_propagatesTextAndSelectionChanges() {
+        var text = "#swift"
+        var isSelecting = false
+        let view = TapTagView(
+            text: Binding(get: { text }, set: { text = $0 }),
+            isSelecting: Binding(get: { isSelecting }, set: { isSelecting = $0 })
+        )
+        let coordinator = view.makeCoordinator()
+        let textView = TapTextView()
+
+        textView.text = "#swift #ios"
+        coordinator.tapTextViewDidChangeText(textView)
+        coordinator.tapTextViewDidStartSelection(textView)
+
+        XCTAssertEqual(text, "#swift #ios")
+        XCTAssertTrue(isSelecting)
+
+        coordinator.tapTextViewDidFinishSelection(textView)
+        XCTAssertFalse(isSelecting)
+    }
+
+    func testCleanUpHashtags_removesDuplicates() {
+        let textView = TapTextView()
+        textView.text = "#sun #sun #sea"
+
+        textView.cleanUpHashtags()
+
+        XCTAssertEqual(textView.text, "#sun #sea")
     }
 
     func testProgrammaticSelection_selectsDeselectsAndClears() {
@@ -111,21 +146,6 @@ final class TapTextViewTests: XCTestCase {
 
         XCTAssertFalse(textView.text.contains("#sun"))
         XCTAssertTrue(textView.text.contains("#sea"))
-    }
-
-    func testPlaceholder_showsWhileEmptyAndHidesWithText() {
-        let textView = TapTextView()
-        textView.configuration = .init(placeholder: "Type here")
-
-        let label = textView.subviews.compactMap { $0 as? UILabel }.first
-        XCTAssertEqual(label?.text, "Type here")
-        XCTAssertEqual(label?.isHidden, false)
-
-        textView.text = "#sun"
-        XCTAssertEqual(label?.isHidden, true)
-
-        textView.text = ""
-        XCTAssertEqual(label?.isHidden, false)
     }
 
     func testTagsWithRegexMetacharacters_doNotBreakSelection() {
@@ -215,29 +235,6 @@ final class TapTextViewTests: XCTestCase {
 
         XCTAssertFalse(textView.text.contains("  "), "Deleting a tag should not leave a double space")
         XCTAssertTrue(textView.text.contains("#sea"))
-    }
-
-    func testKeyboardAvoidance_canBeToggledOffWithoutLingeringObservers() {
-        let textView = TapTextView()
-        textView.configuration = .init(avoidsKeyboard: true)
-
-        let frame = CGRect(x: 0, y: 0, width: 320, height: 250)
-        func postKeyboardChange() {
-            NotificationCenter.default.post(
-                name: UIResponder.keyboardWillChangeFrameNotification, object: nil,
-                userInfo: [UIResponder.keyboardFrameEndUserInfoKey: NSValue(cgRect: frame)])
-        }
-
-        postKeyboardChange()
-        XCTAssertEqual(textView.contentInset.bottom, 250, accuracy: 0.5)
-
-        // Turning avoidance off must remove the observers and reset the inset.
-        textView.configuration = .init(avoidsKeyboard: false)
-        XCTAssertEqual(textView.contentInset.bottom, 0, accuracy: 0.5)
-
-        postKeyboardChange()
-        XCTAssertEqual(textView.contentInset.bottom, 0, accuracy: 0.5,
-                       "Keyboard observers should be gone after avoidsKeyboard is turned off")
     }
 
     // MARK: - Helpers

@@ -14,7 +14,17 @@ final class TagSelectionViewModel {
     /// Compiled regexes are cached; a tag's pattern never changes.
     private var regexCache: [String: NSRegularExpression] = [:]
 
+    /// Whether a grouping has already happened this session, which decides the
+    /// separator the next grouping inserts.
+    private var hasGrouped = false
+
     var isEmpty: Bool { selectedTags.isEmpty }
+
+    /// The selection as a single `#`-prefixed, space-separated string — the form
+    /// used for the clipboard and for the grouped header.
+    var hashtagList: String {
+        selectedTags.map { "#" + $0 }.joined(separator: " ")
+    }
 
     // MARK: - Intents
 
@@ -46,6 +56,9 @@ final class TagSelectionViewModel {
 
     func clear() { selectedTags.removeAll() }
 
+    /// Resets per-session grouping state. Call when a selection session ends.
+    func resetGrouping() { hasGrouped = false }
+
     // MARK: - Text logic
 
     /// The hashtag word (without `#`) whose token contains `index`, else nil.
@@ -76,6 +89,49 @@ final class TagSelectionViewModel {
             let pattern = "(?<!\\S)#\(NSRegularExpression.escapedPattern(for: tag))(?!\\S) ?"
             return partial.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
         }
+    }
+
+    /// `text` with the selected tags lifted out of their positions and grouped
+    /// at the top (in selection order). The first grouping of a session pushes
+    /// the body down with a blank line; later ones use a space so the new header
+    /// doesn't fuse onto a previously grouped one (`#y#x`). Selection is kept.
+    func groupingSelectedTagsAtTop(of text: String) -> String {
+        guard !selectedTags.isEmpty else { return text }
+        let body = removingSelectedTags(from: text)
+        let separator = hasGrouped ? " " : "\n\n"
+        hasGrouped = true
+        return hashtagList + separator + body
+    }
+
+    /// `text` with invalid hashtags and duplicate hashtags removed (keeping the
+    /// first occurrence of each, compared case-insensitively). A hashtag is
+    /// valid when `#` is followed by a letter, digit, or underscore.
+    func cleanedText(_ text: String) -> String {
+        let ns = text as NSString
+        guard let regex = try? NSRegularExpression(pattern: "#\\S+") else { return text }
+
+        var seen = Set<String>()
+        var rangesToRemove: [NSRange] = []
+        regex.enumerateMatches(in: text, range: NSRange(location: 0, length: ns.length)) { match, _, _ in
+            guard let match else { return }
+            let word = ns.substring(with: match.range).dropFirst()
+            let isValid = word.unicodeScalars.first.map {
+                CharacterSet.alphanumerics.contains($0) || $0 == "_"
+            } ?? false
+
+            let isDuplicate = isValid && !seen.insert(word.lowercased()).inserted
+            guard !isValid || isDuplicate else { return }
+
+            // Swallow one trailing space so removal doesn't leave a double space.
+            var range = match.range
+            let after = range.location + range.length
+            if after < ns.length, ns.character(at: after) == 32 { range.length += 1 }
+            rangesToRemove.append(range)
+        }
+
+        let result = NSMutableString(string: text)
+        for range in rangesToRemove.reversed() { result.deleteCharacters(in: range) }
+        return result as String
     }
 
     // MARK: - Helpers

@@ -10,20 +10,27 @@ copy, cut, group at the top, deselect, or delete.
 
 ```swift
 let textView = TapTextView()
-textView.addTagSelectorToolBar(viewController: self)
 navigationItem.rightBarButtonItem = textView.makeTapTextViewButton()
 ```
 
-Strings, highlight color, placeholder, and accessibility labels are injectable
-through ``TapTextView/Configuration``.
+That's it — the action toolbar appears and hides itself for the session. The
+highlight color and accessibility labels are injectable through
+``TapTextView/Configuration``.
 
 ## Topics
 
 ### Essentials
 
 - ``TapTextView``
+- ``TapTagView``
 - ``TapTextView/Configuration``
 - ``TapTextViewDelegate``
+
+### Sessions
+
+- ``TapTextView/makeTapTextViewButton()``
+- ``TapTextView/beginSelection()``
+- ``TapTextView/endSelection()``
 
 ### Selecting tags
 
@@ -32,3 +39,10 @@ through ``TapTextView/Configuration``.
 - ``TapTextView/clearSelection()``
 - ``TapTextView/selectedTagsInOrder``
 - ``TapTextView/isSelecting``
+
+### Acting on the selection
+
+- ``TapTextView/copySelectedTags()``
+- ``TapTextView/cutSelectedTags()``
+- ``TapTextView/groupSelectedTags()``
+- ``TapTextView/deleteSelectedTags()``

@@ -21,6 +21,7 @@ xcodebuild test \
   -scheme TapTagKit \
   -destination "$DEST" \
   -only-testing:TapTagKitTests/ReadmeGIFTests/testRenderReadmeGIF \
+  -only-testing:TapTagKitTests/ActionBarSnapshotTests/testRenderActionBar \
   CODE_SIGNING_ALLOWED=NO
 
-echo "✅ GIF written to $OUT_DIR/demo.gif"
+echo "✅ Wrote $OUT_DIR/demo.gif and $OUT_DIR/action-bar.png"

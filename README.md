@@ -24,25 +24,44 @@ Swift Package Manager:
 
 ```swift
 let textView = TapTextView()
-textView.addTagSelectorToolBar(viewController: self)                 // the actions toolbar
-navigationItem.rightBarButtonItem = textView.makeTapTextViewButton() // enters selection mode
+navigationItem.rightBarButtonItem = textView.makeTapTextViewButton()
 ```
 
-Reveal the toolbar only while a session is live:
+That's the whole setup. Tapping the button starts a session; the action toolbar
+shows and hides itself — no navigation-controller wiring, no delegate dance. Or
+drive it yourself with `beginSelection()` / `endSelection()`.
+
+### SwiftUI
 
 ```swift
-extension MyViewController: TapTextViewDelegate {
-    func tapTextViewDidStartSelection(_ tv: TapTextView) { navigationController?.setToolbarHidden(false, animated: true) }
-    func tapTextViewDidFinishSelection(_ tv: TapTextView) { navigationController?.setToolbarHidden(true, animated: true) }
+@State private var text = "Try #swift and #swiftui"
+@State private var isSelecting = false
+
+var body: some View {
+    VStack {
+        TapTagView(text: $text, isSelecting: $isSelecting)
+        Button(isSelecting ? "Done" : "Select hashtags") {
+            isSelecting.toggle()
+        }
+    }
 }
 ```
 
+`TapTagView` is a native SwiftUI adapter backed by the same UIKit text engine.
+The text and selection-session state stay synchronized through bindings.
+
 ## What you get
 
+<p align="center">
+  <img src="Assets/action-bar.png" alt="The captioned action bar: Copy, Cut, Group, Deselect, Delete, Done" width="420">
+</p>
+
 - **One tap, every match** — selecting `#swift` highlights it everywhere at once.
-- **Batch toolbar** — copy · cut · group-to-top · deselect · delete.
-- **Drive it in code** — `selectTag`, `deselectTag`, `clearSelection`, `selectedTagsInOrder`.
-- **Yours to style** — highlight color, placeholder, keyboard avoidance, and every VoiceOver string, all via `Configuration`.
+- **Self-managing captioned bar** — copy · cut · group-to-top · deselect · delete · done, each with a label; appears and hides itself.
+- **Tidies up on entry** — duplicate and invalid hashtags are removed when a session starts (toggle with `removesDuplicatesOnSelection`).
+- **Safe destructive actions** — Delete asks for confirmation; Done finishes immediately.
+- **Drive it in code** — `selectTag`, `deselectTag`, `groupSelectedTags`, `cleanUpHashtags`, `selectedTagsInOrder`.
+- **Yours to style** — highlight color and every label/caption via `Configuration` (localize once, used for the caption *and* VoiceOver).
 - **Won't trample your text** — fonts, colors, and links survive highlighting; awkward tags like `#c++` are matched whole.
 
 ## Customize
@@ -50,7 +69,6 @@ extension MyViewController: TapTextViewDelegate {
 ```swift
 var config = TapTextView.Configuration()
 config.tagHighlightColor = .systemIndigo
-config.placeholder = "Add some #tags…"
 config.accessibility.copyLabel = "Copier"   // localize any string
 textView.configuration = config
 ```

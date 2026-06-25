@@ -3,6 +3,35 @@
 All notable changes to TapTagKit are documented here.
 This project adheres to [Semantic Versioning](https://semver.org).
 
+## [Unreleased]
+
+### Added
+- **Captioned action bar:** the bar is now a grouped, rounded card whose
+  buttons pair an icon with a small caption (so the actions are self-explanatory
+  and the info "?" button is unnecessary). Built as `TagActionBar`.
+- **Delete confirmation:** tapping Delete asks for confirmation before removing
+  the selected tags; Done finishes the session immediately.
+- **Hashtag clean-up:** `cleanUpHashtags()` removes duplicate (case-insensitive)
+  and invalid hashtags; runs automatically on `beginSelection()` unless
+  `removesDuplicatesOnSelection` is set to `false`.
+
+### Changed
+- Action labels are short captions that double as VoiceOver labels (one string
+  per action in `Configuration.accessibility`).
+- **Self-contained toolbar:** the selection actions now live in a `UIToolbar`
+  the view shows/hides itself. `addTagSelectorToolBar(viewController:)` is gone
+  and the delegate is no longer needed to reveal the bar — just
+  `makeTapTextViewButton()` (or `beginSelection()`). The bar also got polish:
+  destructive Delete in red, a prominent Done, and the highlight tint.
+- Tightened the MVVM split: tag/text composition (grouping, the `#`-prefixed
+  list) and the grouping session state now live in `TagSelectionViewModel`;
+  the view only renders. Extracted view helpers and narrowed access control.
+
+### Removed
+- **Breaking:** the built-in placeholder, keyboard avoidance, and the info "?"
+  button + alert — all the host app's concern. `Configuration` shrank to the
+  highlight colors and accessibility strings.
+
 ## [2.0.0] — 2026-06-25
 
 ### Added
