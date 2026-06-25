@@ -20,8 +20,8 @@ TEST_RUNNER_GIF_OUTPUT_DIR="$OUT_DIR" \
 xcodebuild test \
   -scheme TapTagKit \
   -destination "$DEST" \
-  -only-testing:TapTagKitTests/ReadmeGIFTests/testRenderReadmeGIF \
+  -only-testing:TapTagKitTests/ReadmeGIFTests/testRenderReadmeGIFs \
   -only-testing:TapTagKitTests/ActionBarSnapshotTests/testRenderActionBar \
   CODE_SIGNING_ALLOWED=NO
 
-echo "✅ Wrote $OUT_DIR/demo.gif and $OUT_DIR/action-bar.png"
+echo "✅ Wrote $OUT_DIR/demo.gif, $OUT_DIR/demo-fr.gif and $OUT_DIR/action-bar.png"

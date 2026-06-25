@@ -3,9 +3,10 @@ import UIKit
 
 private enum Constants {
     static let cornerRadius: CGFloat = 22
-    static let shadowOpacity = 0.12
-    static let shadowRadius: CGFloat = 14
-    static let shadowOffset: CGFloat = 4
+    static let shadowOpacity = 0.16
+    static let shadowRadius: CGFloat = 16
+    static let shadowOffset: CGFloat = 6
+    static let borderOpacity = 0.28
     static let stackSpacing: CGFloat = 2
     static let stackInset: CGFloat = 8
     static let buttonHorizontalInset: CGFloat = 4
@@ -14,6 +15,7 @@ private enum Constants {
     static let titleFontSize: CGFloat = 11
     static let prominentBackgroundAlpha = 0.15
     static let barHeight: CGFloat = 70
+    static let cancelFallback = "Cancel"
 }
 
 /// A UIKit container for the SwiftUI action bar presented by ``TapTextView``.
@@ -95,8 +97,14 @@ private struct TagActionBarContent: View {
             }
         }
         .padding(Constants.stackInset)
-        .background(Color(uiColor: .secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: Constants.cornerRadius, style: .continuous))
+        .background(
+            .ultraThinMaterial,
+            in: RoundedRectangle(cornerRadius: Constants.cornerRadius, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: Constants.cornerRadius, style: .continuous)
+                .stroke(.white.opacity(Constants.borderOpacity), lineWidth: 0.5)
+        }
         .shadow(
             color: .black.opacity(Constants.shadowOpacity),
             radius: Constants.shadowRadius,
@@ -107,7 +115,7 @@ private struct TagActionBarContent: View {
             Alert(
                 title: Text(item.confirmationTitle ?? item.title),
                 primaryButton: .destructive(Text(item.title), action: item.handler),
-                secondaryButton: .cancel(Text(item.cancelTitle ?? "Cancel"))
+                secondaryButton: .cancel(Text(item.cancelTitle ?? Constants.cancelFallback))
             )
         }
     }

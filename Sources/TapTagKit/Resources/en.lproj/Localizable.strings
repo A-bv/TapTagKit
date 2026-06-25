@@ -1,0 +1,21 @@
+/* Accessibility label for the bar button that starts a selection session. */
+"ttk.select" = "Select hashtags";
+
+/* Action bar button captions (also used as VoiceOver labels). */
+"ttk.copy" = "Copy";
+"ttk.cut" = "Cut";
+"ttk.group" = "Group";
+"ttk.deselect" = "Deselect";
+"ttk.delete" = "Delete";
+"ttk.done" = "Done";
+"ttk.cancel" = "Cancel";
+
+/* Title of the confirmation alert shown before deleting tags. */
+"ttk.deleteConfirm" = "Delete these hashtags?";
+
+/* VoiceOver hint shown while a selection session is active. */
+"ttk.hint" = "Double tap a hashtag to select it.";
+
+/* VoiceOver announcements; %@ is the hashtag, e.g. "#swift". */
+"ttk.selected" = "Selected %@";
+"ttk.deselected" = "Deselected %@";

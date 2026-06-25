@@ -1,5 +1,20 @@
 import UIKit
 
+private enum Constants {
+    // SF Symbol names.
+    static let activateSymbol = "hand.point.up.left"
+    static let copySymbol = "doc.on.doc"
+    static let cutSymbol = "scissors"
+    static let groupSymbol = "square.grid.2x2"
+    static let deselectSymbol = "xmark.circle"
+    static let deleteSymbol = "trash"
+    static let doneSymbol = "checkmark"
+
+    // Action-bar layout insets.
+    static let barHorizontalInset: CGFloat = 12
+    static let barBottomInset: CGFloat = 8
+}
+
 public protocol TapTextViewDelegate: AnyObject {
     func tapTextViewDidStartSelection(_ textView: TapTextView)
     func tapTextViewDidFinishSelection(_ textView: TapTextView)
@@ -24,6 +39,9 @@ public class TapTextView: UITextView {
     /// Highlight colors and accessibility strings — injectable for theming and
     /// localization. Tweak a single field, e.g. `config.accessibility.copyLabel`.
     public struct Configuration {
+        /// The default tag highlight color (a magenta).
+        public static let defaultHighlightColor = UIColor(red: 0.808, green: 0.027, blue: 0.333, alpha: 1)
+
         public var tagHighlightColor: UIColor
         /// Text color drawn over a highlighted tag.
         public var selectedTagTextColor: UIColor
@@ -31,24 +49,25 @@ public class TapTextView: UITextView {
 
         /// Short labels double as the button captions and the VoiceOver labels,
         /// so there's one localizable string per action.
+        /// Defaults are localized (English + French) from the package bundle.
         public struct Accessibility {
-            public var selectButtonLabel = "Select hashtags"
-            public var copyLabel = "Copy"
-            public var cutLabel = "Cut"
-            public var groupLabel = "Group"
-            public var deselectLabel = "Deselect"
-            public var deleteLabel = "Delete"
-            public var doneLabel = "Done"
-            public var selectionHint = "Double tap a hashtag to select it."
-            public var deleteConfirmationTitle = "Are you sure?"
-            public var cancelLabel = "Cancel"
-            public var didSelectAnnouncement: (_ tag: String) -> String = { "Selected \($0)" }
-            public var didDeselectAnnouncement: (_ tag: String) -> String = { "Deselected \($0)" }
+            public var selectButtonLabel = L.select
+            public var copyLabel = L.copy
+            public var cutLabel = L.cut
+            public var groupLabel = L.group
+            public var deselectLabel = L.deselect
+            public var deleteLabel = L.delete
+            public var doneLabel = L.done
+            public var selectionHint = L.hint
+            public var deleteConfirmationTitle = L.deleteConfirm
+            public var cancelLabel = L.cancel
+            public var didSelectAnnouncement: (_ tag: String) -> String = { L.selected($0) }
+            public var didDeselectAnnouncement: (_ tag: String) -> String = { L.deselected($0) }
             public init() {}
         }
 
         public init(
-            tagHighlightColor: UIColor = UIColor(red: 0.808, green: 0.027, blue: 0.333, alpha: 1),
+            tagHighlightColor: UIColor = Configuration.defaultHighlightColor,
             selectedTagTextColor: UIColor = .white,
             accessibility: Accessibility = Accessibility()
         ) {
@@ -115,7 +134,7 @@ public class TapTextView: UITextView {
     /// just call `beginSelection()` from any control you like.
     public func makeTapTextViewButton() -> UIBarButtonItem {
         activateButton = UIBarButtonItem(
-            image: UIImage(systemName: "hand.point.up.left"),
+            image: UIImage(systemName: Constants.activateSymbol),
             style: .plain, target: self, action: #selector(beginSelection))
         activateButton.accessibilityLabel = configuration.accessibility.selectButtonLabel
         return activateButton
@@ -175,9 +194,9 @@ public class TapTextView: UITextView {
         host.addSubview(bar)
         let safe = host.safeAreaLayoutGuide
         NSLayoutConstraint.activate([
-            bar.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: 12),
-            bar.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -12),
-            bar.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -8),
+            bar.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: Constants.barHorizontalInset),
+            bar.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -Constants.barHorizontalInset),
+            bar.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -Constants.barBottomInset),
         ])
     }
 
@@ -195,16 +214,16 @@ public class TapTextView: UITextView {
     func makeActionBar() -> TagActionBar {
         let a11y = configuration.accessibility
         let items: [TagActionBar.Item] = [
-            .init(symbol: "doc.on.doc", title: a11y.copyLabel, tint: nil, isProminent: false,
+            .init(symbol: Constants.copySymbol, title: a11y.copyLabel, tint: nil, isProminent: false,
                   handler: { [weak self] in self?.copySelectedTags() }),
-            .init(symbol: "scissors", title: a11y.cutLabel, tint: nil, isProminent: false,
+            .init(symbol: Constants.cutSymbol, title: a11y.cutLabel, tint: nil, isProminent: false,
                   handler: { [weak self] in self?.cutSelectedTags() }),
-            .init(symbol: "square.grid.2x2", title: a11y.groupLabel, tint: nil, isProminent: false,
+            .init(symbol: Constants.groupSymbol, title: a11y.groupLabel, tint: nil, isProminent: false,
                   handler: { [weak self] in self?.groupSelectedTags() }),
-            .init(symbol: "xmark.circle", title: a11y.deselectLabel, tint: nil, isProminent: false,
+            .init(symbol: Constants.deselectSymbol, title: a11y.deselectLabel, tint: nil, isProminent: false,
                   handler: { [weak self] in self?.clearSelection() }),
             .init(
-                symbol: "trash",
+                symbol: Constants.deleteSymbol,
                 title: a11y.deleteLabel,
                 tint: .systemRed,
                 isProminent: false,
@@ -212,7 +231,7 @@ public class TapTextView: UITextView {
                 cancelTitle: a11y.cancelLabel,
                 handler: { [weak self] in self?.deleteSelectedTags() }
             ),
-            .init(symbol: "checkmark", title: a11y.doneLabel, tint: nil, isProminent: true,
+            .init(symbol: Constants.doneSymbol, title: a11y.doneLabel, tint: nil, isProminent: true,
                   handler: { [weak self] in self?.endSelection() }),
         ]
         return TagActionBar(items: items, tint: configuration.tagHighlightColor)

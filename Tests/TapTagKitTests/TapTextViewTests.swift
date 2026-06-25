@@ -7,19 +7,25 @@ final class TapTextViewTests: XCTestCase {
 
     func testActionBar_hasSixCaptionedItems() {
         let textView = TapTextView()
+        let a11y = textView.configuration.accessibility
         let items = textView.makeActionBar().items
 
         // copy, cut, group, deselect, delete, done — each captioned/labeled.
+        // Compared against the (localized) config labels, not English literals.
         XCTAssertEqual(items.count, 6)
         XCTAssertTrue(items.allSatisfy { !$0.title.isEmpty })
-        XCTAssertTrue(items.contains { $0.title == "Done" && $0.confirmationTitle == nil })
-        XCTAssertTrue(items.contains { $0.title == "Delete" && $0.confirmationTitle == "Are you sure?" })
+        XCTAssertTrue(items.contains { $0.title == a11y.doneLabel && $0.confirmationTitle == nil })
+        XCTAssertTrue(items.contains {
+            $0.title == a11y.deleteLabel && $0.confirmationTitle == a11y.deleteConfirmationTitle
+        })
     }
 
     func testDoneAction_endsSelectionWithoutConfirmation() {
         let textView = TapTextView()
         textView.beginSelection()
-        let done = textView.makeActionBar().items.first { $0.title == "Done" }
+        let done = textView.makeActionBar().items.first {
+            $0.title == textView.configuration.accessibility.doneLabel
+        }
 
         done?.handler()
 
