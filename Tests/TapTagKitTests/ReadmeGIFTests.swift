@@ -16,31 +16,50 @@ final class ReadmeGIFTests: XCTestCase {
             throw XCTSkip("Set GIF_OUTPUT_DIR (use Scripts/record-gif.sh) to render the README GIF.")
         }
 
-        let (card, textView, caption) = makeDemoCard()
-        let window = UIWindow(frame: card.bounds)
+        let scene = makeScene()
+        let window = UIWindow(frame: scene.card.bounds)
         window.rootViewController = UIViewController()
-        window.rootViewController?.view.addSubview(card)
+        window.rootViewController?.view.addSubview(scene.card)
         window.makeKeyAndVisible()
 
         var frames: [AnimatedGIF.Frame] = []
         func capture(_ message: String, hold: Double) {
-            caption.text = message
-            card.setNeedsLayout()
-            card.layoutIfNeeded()
-            frames.append(.init(image: snapshot(card), delay: hold))
+            scene.caption.text = message
+            scene.card.setNeedsLayout()
+            scene.card.layoutIfNeeded()
+            frames.append(.init(image: snapshot(scene.card), delay: hold))
         }
+        func showTap(on token: String) {
+            if let center = tagCenter(of: token, in: scene.textView, container: scene.card) {
+                scene.tapDot.center = center
+                scene.tapDot.isHidden = false
+            }
+        }
+        func hideTap() { scene.tapDot.isHidden = true }
 
-        textView.text = sampleText
-        capture("Tap a hashtag — every match lights up", hold: 1.6)
+        scene.textView.text = sampleText
+        capture("Tap a hashtag to select it", hold: 0.9)
 
-        textView.selectTag("swift")
-        capture("#swift selected · 3 matches", hold: 1.4)
+        showTap(on: "#swift")
+        capture("Tap #swift…", hold: 0.5)
 
-        textView.selectTag("iOS")
-        capture("Add #iOS to the selection", hold: 1.4)
+        hideTap()
+        scene.textView.selectTag("swift")
+        capture("Every #swift lights up · 3 matches", hold: 1.0)
 
-        textView.groupSelectedTags()
-        capture("Group them to the top ↑", hold: 2.2)
+        showTap(on: "#iOS")
+        capture("Tap #iOS…", hold: 0.5)
+
+        hideTap()
+        scene.textView.selectTag("iOS")
+        capture("Select as many as you like", hold: 0.9)
+
+        scene.textView.groupSelectedTags()
+        capture("Group them to the top ↑", hold: 1.2)
+
+        scene.textView.deleteSelectedTags()
+        scene.textView.text = scene.textView.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        capture("…or delete them in one tap", hold: 1.4)
 
         let url = URL(fileURLWithPath: outputDir, isDirectory: true)
             .appendingPathComponent("demo.gif")
@@ -50,12 +69,19 @@ final class ReadmeGIFTests: XCTestCase {
         try AnimatedGIF.write(frames, to: url)
 
         XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
-        print("📽  README GIF written to \(url.path)")
+        print("📽  README GIF written to \(url.path) (\(frames.count) frames)")
     }
 
     // MARK: - Demo scene
 
-    private func makeDemoCard() -> (card: UIView, textView: TapTextView, caption: UILabel) {
+    private struct Scene {
+        let card: UIView
+        let textView: TapTextView
+        let caption: UILabel
+        let tapDot: UIView
+    }
+
+    private func makeScene() -> Scene {
         let width: CGFloat = 380
         let card = UIView(frame: CGRect(x: 0, y: 0, width: width, height: 320))
         card.backgroundColor = .secondarySystemBackground
@@ -86,7 +112,28 @@ final class ReadmeGIFTests: XCTestCase {
         caption.numberOfLines = 2
         card.addSubview(caption)
 
-        return (card, textView, caption)
+        // A translucent "finger tap" indicator, hidden until a tap is shown.
+        let tapDot = UIView(frame: CGRect(x: 0, y: 0, width: 40, height: 40))
+        tapDot.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.28)
+        tapDot.layer.cornerRadius = 20
+        tapDot.layer.borderWidth = 2
+        tapDot.layer.borderColor = UIColor.systemBlue.withAlphaComponent(0.85).cgColor
+        tapDot.isHidden = true
+        card.addSubview(tapDot)
+
+        return Scene(card: card, textView: textView, caption: caption, tapDot: tapDot)
+    }
+
+    /// Center (in `container` coordinates) of the first occurrence of `token`.
+    private func tagCenter(of token: String, in textView: TapTextView, container: UIView) -> CGPoint? {
+        let range = (textView.text as NSString).range(of: token)
+        guard range.location != NSNotFound,
+              let start = textView.position(from: textView.beginningOfDocument, offset: range.location),
+              let end = textView.position(from: start, offset: range.length),
+              let textRange = textView.textRange(from: start, to: end)
+        else { return nil }
+        let rect = textView.firstRect(for: textRange)
+        return textView.convert(CGPoint(x: rect.midX, y: rect.midY), to: container)
     }
 
     private func snapshot(_ view: UIView) -> UIImage {
