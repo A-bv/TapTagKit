@@ -50,20 +50,6 @@ var body: some View {
 `TapTagView` is a native SwiftUI adapter backed by the same UIKit text engine.
 The text and selection-session state stay synchronized through bindings.
 
-## What you get
-
-<p align="center">
-  <img src="Assets/action-bar.png" alt="The captioned action bar: Copy, Cut, Group, Deselect, Delete, Done" width="420">
-</p>
-
-- **One tap, every match** — selecting `#swift` highlights it everywhere at once.
-- **Self-managing captioned bar** — copy · cut · group-to-top · deselect · delete · done, each with a label; appears and hides itself.
-- **Tidies up on entry** — duplicate and invalid hashtags are removed when a session starts (toggle with `removesDuplicatesOnSelection`).
-- **Safe destructive actions** — Delete asks for confirmation; Done finishes immediately.
-- **Drive it in code** — `selectTag`, `deselectTag`, `groupSelectedTags`, `cleanUpHashtags`, `selectedTagsInOrder`.
-- **English & French out of the box** — labels, captions, and VoiceOver strings ship localized; override any string via `Configuration`.
-- **Won't trample your text** — fonts, colors, and links survive highlighting; awkward tags like `#c++` are matched whole.
-
 ## Customize
 
 ```swift
@@ -72,6 +58,8 @@ config.tagHighlightColor = .systemIndigo
 config.accessibility.copyLabel = "Copier"   // localize any string
 textView.configuration = config
 ```
+
+Labels, captions, and VoiceOver strings ship localized in **English and French** — override any of them through `Configuration`. Duplicate and invalid hashtags are tidied when a session starts (`removesDuplicatesOnSelection`).
 
 ## Under the hood
 
