@@ -3,15 +3,16 @@
 All notable changes to TapTagKit are documented here.
 This project adheres to [Semantic Versioning](https://semver.org).
 
-## [Unreleased]
+## [3.0.0] — 2026-06-25
 
 ### Added
+- **SwiftUI adapter:** `TapTagView` (`UIViewRepresentable`) with `text` /
+  `isSelecting` bindings, backed by the same UIKit engine.
 - **Built-in localization (English + French):** all labels, captions, and
   VoiceOver strings ship localized via the package bundle; still overridable
   per instance through `Configuration`.
-- **Captioned action bar:** the bar is now a grouped, rounded card whose
-  buttons pair an icon with a small caption (so the actions are self-explanatory
-  and the info "?" button is unnecessary). Built as `TagActionBar`.
+- **Captioned action bar:** the bar is now a grouped, rounded card (`TagActionBar`,
+  SwiftUI-hosted) whose buttons pair an icon with a small caption.
 - **Delete confirmation:** tapping Delete asks for confirmation before removing
   the selected tags; Done finishes the session immediately.
 - **Hashtag clean-up:** `cleanUpHashtags()` removes duplicate (case-insensitive)
@@ -19,6 +20,10 @@ This project adheres to [Semantic Versioning](https://semver.org).
   `removesDuplicatesOnSelection` is set to `false`.
 
 ### Changed
+- Captions shrink to fit longer locales (no truncation), and the text view is
+  inset while the bar is shown so it never covers the last line.
+- The bar's hosting controller is added to the view-controller tree so its
+  confirmation alert presents reliably.
 - Action labels are short captions that double as VoiceOver labels (one string
   per action in `Configuration.accessibility`).
 - **Self-contained toolbar:** the selection actions now live in a `UIToolbar`

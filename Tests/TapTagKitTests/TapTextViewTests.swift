@@ -58,6 +58,23 @@ final class TapTextViewTests: XCTestCase {
         XCTAssertTrue(host.children.isEmpty)
     }
 
+    func testActionBar_insetsTextWhileShownAndRestoresAfter() {
+        let host = UIViewController()
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 320, height: 480))
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+
+        let textView = TapTextView()
+        host.view.addSubview(textView)
+        let before = textView.contentInset.bottom
+
+        textView.beginSelection()
+        XCTAssertGreaterThan(textView.contentInset.bottom, before)
+
+        textView.endSelection()
+        XCTAssertEqual(textView.contentInset.bottom, before, accuracy: 0.5)
+    }
+
     func testDoneAction_endsSelectionWithoutConfirmation() {
         let textView = TapTextView()
         textView.beginSelection()

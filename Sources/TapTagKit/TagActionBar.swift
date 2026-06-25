@@ -16,6 +16,8 @@ private enum Constants {
     static let prominentBackgroundAlpha = 0.15
     static let barHeight: CGFloat = 70
     static let cancelFallback = "Cancel"
+    /// How far captions may shrink to fit longer (e.g. French) labels.
+    static let titleMinimumScale: CGFloat = 0.5
 }
 
 /// A UIKit container for the SwiftUI action bar presented by ``TapTextView``.
@@ -151,7 +153,7 @@ private struct TagActionBarContent: View {
                 Text(item.title)
                     .font(.system(size: Constants.titleFontSize, weight: .medium))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                    .minimumScaleFactor(Constants.titleMinimumScale)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.horizontal, Constants.buttonHorizontalInset)

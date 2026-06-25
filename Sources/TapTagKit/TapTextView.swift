@@ -187,6 +187,8 @@ public class TapTextView: UITextView {
     /// discarded text view never leaves one behind.
     private var activeBar: TagActionBar?
 
+    private var insetsBeforeBar: (content: UIEdgeInsets, indicator: UIEdgeInsets)?
+
     private func presentActionBar() {
         guard activeBar == nil, let host = window ?? superview else { return }
         let bar = makeActionBar()
@@ -201,12 +203,23 @@ public class TapTextView: UITextView {
         // Add the bar's SwiftUI hosting controller to the VC tree so its
         // confirmation alert can present.
         if let owner = owningViewController { bar.attach(to: owner) }
+
+        // Inset the text so the bar never covers the last line.
+        insetsBeforeBar = (contentInset, verticalScrollIndicatorInsets)
+        let occlusion = bar.intrinsicContentSize.height + Constants.barBottomInset * 2
+        contentInset.bottom += occlusion
+        verticalScrollIndicatorInsets.bottom += occlusion
     }
 
     private func dismissActionBar() {
         activeBar?.detach()
         activeBar?.removeFromSuperview()
         activeBar = nil
+        if let saved = insetsBeforeBar {
+            contentInset = saved.content
+            verticalScrollIndicatorInsets = saved.indicator
+            insetsBeforeBar = nil
+        }
     }
 
     /// The nearest view controller up the responder chain, used to host the
