@@ -21,9 +21,10 @@ final class ActionBarSnapshotTests: XCTestCase {
         textView.configuration = config
         textView.font = .preferredFont(forTextStyle: .body)
         textView.text = """
-        #swift #swiftui #iosdev #xcode #wwdc
-        #programming #mobile #apps #coding #developer
+        #swift #swiftui #iosdev #Swift #xcode
+        #wwdc #coding #apps #! #coding #developer
         """
+        textView.cleanUpHashtags()   // removes #Swift, #!, the 2nd #coding
         textView.isScrollEnabled = false
         textView.backgroundColor = .systemBackground
         textView.textContainerInset = UIEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)

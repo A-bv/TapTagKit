@@ -13,9 +13,12 @@ private final class PreviewViewController: UIViewController {
         textView.configuration = config
 
         textView.font = .preferredFont(forTextStyle: .body)
+        // Seeded with duplicates (#Swift, a second #coding) and an invalid "#!".
+        // beginSelection() runs cleanUpHashtags() on load, so the canvas renders
+        // them already removed — a live proof of the auto clean-up.
         textView.text = """
-        #swift #swiftui #iosdev #xcode #wwdc
-        #programming #mobile #apps #coding #developer
+        #swift #swiftui #iosdev #Swift #xcode
+        #wwdc #coding #apps #! #coding #developer
         """
         textView.isScrollEnabled = false
         textView.textContainerInset = UIEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
