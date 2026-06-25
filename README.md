@@ -1,45 +1,64 @@
 # TapTagKit
 
-A `UITextView` whose hashtags become tappable. Enter selection mode, tap tags to highlight every occurrence, then act on the whole selection from a toolbar: copy, cut, group at the top, deselect, or delete.
+**Hashtags you can actually tap.** A `UITextView` subclass that turns every `#tag` into a target: tap one to light up all its twins, then act on the whole set from a toolbar.
 
-## Features
-- Tap-to-select hashtags — one tap highlights every occurrence.
-- Selection toolbar: copy, cut, group-to-top, deselect, delete.
-- Optional placeholder and keyboard avoidance.
-- Strings and highlight color injectable via `Configuration` (localization + theming).
+[![CI](https://github.com/A-bv/TapTagKit/actions/workflows/ci.yml/badge.svg)](https://github.com/A-bv/TapTagKit/actions/workflows/ci.yml)
+![Swift 5.9](https://img.shields.io/badge/Swift-5.9-F05138?logo=swift&logoColor=white)
+![iOS 15+](https://img.shields.io/badge/iOS-15%2B-007AFF?logo=apple&logoColor=white)
+![SPM](https://img.shields.io/badge/SPM-compatible-success)
+![License: MIT](https://img.shields.io/badge/License-MIT-lightgrey)
 
-## Requirements
-iOS 15 · Swift 5.9
+## Install
 
-## Installation
+Swift Package Manager:
+
 ```swift
-.package(url: "https://github.com/A-bv/TapTagKit", from: "1.1.0")
+.package(url: "https://github.com/A-bv/TapTagKit", from: "2.0.0")
 ```
 
-## Usage
+## 60-second start
+
 ```swift
 let textView = TapTextView()
-textView.tagDelegate = self                                   // toolbar show/hide hooks
-textView.addTagSelectorToolBar(viewController: self)          // installs the actions toolbar
+textView.addTagSelectorToolBar(viewController: self)                 // the actions toolbar
 navigationItem.rightBarButtonItem = textView.makeTapTextViewButton() // enters selection mode
 ```
 
-The host shows the toolbar while a selection session is active:
+Reveal the toolbar only while a session is live:
+
 ```swift
 extension MyViewController: TapTextViewDelegate {
-    func tapTextViewDidStartSelection(_ textView: TapTextView) {
-        navigationController?.setToolbarHidden(false, animated: false)
-    }
-    func tapTextViewDidFinishSelection(_ textView: TapTextView) {
-        navigationController?.setToolbarHidden(true, animated: false)
-    }
+    func tapTextViewDidStartSelection(_ tv: TapTextView) { navigationController?.setToolbarHidden(false, animated: true) }
+    func tapTextViewDidFinishSelection(_ tv: TapTextView) { navigationController?.setToolbarHidden(true, animated: true) }
 }
 ```
 
-All UI strings and the highlight color are injectable via `TapTextView.Configuration` for localization and theming.
+## What you get
 
-## Xcode Preview
-Open `Sources/TapTagKit/Previews.swift` and enable the canvas (**Editor › Canvas**). The preview renders a live `TapTextView` in a `UINavigationController`: tap the activate button (`hand.point.up.left`) in the nav bar to enter selection mode, tap any hashtag to highlight it, and use the bottom toolbar's six actions.
+- **One tap, every match** — selecting `#swift` highlights it everywhere at once.
+- **Batch toolbar** — copy · cut · group-to-top · deselect · delete.
+- **Drive it in code** — `selectTag`, `deselectTag`, `clearSelection`, `selectedTagsInOrder`.
+- **Yours to style** — highlight color, placeholder, keyboard avoidance, and every VoiceOver string, all via `Configuration`.
+- **Won't trample your text** — fonts, colors, and links survive highlighting; awkward tags like `#c++` are matched whole.
 
-## License
-TapTagKit is available under the MIT license. See [LICENSE](LICENSE) for details.
+## Customize
+
+```swift
+var config = TapTextView.Configuration()
+config.tagHighlightColor = .systemIndigo
+config.placeholder = "Add some #tags…"
+config.accessibility.copyLabel = "Copier"   // localize any string
+textView.configuration = config
+```
+
+## Under the hood
+
+Selection state and all tag/text logic live in a UIKit-free `TagSelectionViewModel` (MVVM), so the rules are unit-tested without a single simulated view. History lives in the [CHANGELOG](CHANGELOG.md).
+
+## Preview
+
+Open `Sources/TapTagKit/Previews.swift` and switch on the canvas (**Editor › Canvas**) for a live, tappable demo.
+
+## Requirements & license
+
+iOS 15 · Swift 5.9 · [MIT](LICENSE).
