@@ -378,11 +378,15 @@ public class TapTextView: UITextView {
 
     // MARK: - Tag actions
 
+    /// Pasteboard used by copy/cut. Defaults to the system one; injectable so
+    /// tests can use an isolated pasteboard instead of the shared, flaky global.
+    var pasteboard: UIPasteboard = .general
+
     /// Copies the selected tags (space-separated, each prefixed with `#`) to the
-    /// general pasteboard.
+    /// pasteboard.
     @objc public func copySelectedTags() {
         let arrayToCopy = viewModel.selectedTags.map { "#" + $0 }
-        UIPasteboard.general.string = arrayToCopy.joined(separator: " ")
+        pasteboard.string = arrayToCopy.joined(separator: " ")
     }
 
     /// Copies the selected tags, then removes them from the text.

@@ -61,14 +61,17 @@ final class TapTextViewTests: XCTestCase {
     }
 
     func testCopySelectedTags_writesHashPrefixedListToPasteboard() {
+        let pasteboard = UIPasteboard.withUniqueName()
+        defer { UIPasteboard.remove(withName: pasteboard.name) }
         let textView = TapTextView()
+        textView.pasteboard = pasteboard
         textView.text = "#sun and #sea"
         textView.selectTag("sun")
         textView.selectTag("sea")
 
         textView.copySelectedTags()
 
-        XCTAssertEqual(UIPasteboard.general.string, "#sun #sea")
+        XCTAssertEqual(pasteboard.string, "#sun #sea")
     }
 
     func testHighlight_usesConfiguredSelectedTextColor() {
