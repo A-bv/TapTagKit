@@ -8,6 +8,10 @@
 ![SPM](https://img.shields.io/badge/SPM-compatible-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-lightgrey)
 
+<p align="center">
+  <img src="Assets/demo.gif" alt="Selecting #swift highlights every match, then groups the tags to the top" width="380">
+</p>
+
 ## Install
 
 Swift Package Manager:
@@ -57,7 +61,7 @@ Selection state and all tag/text logic live in a UIKit-free `TagSelectionViewMod
 
 ## Preview
 
-Open `Sources/TapTagKit/Previews.swift` and switch on the canvas (**Editor › Canvas**) for a live, tappable demo.
+Open `Sources/TapTagKit/Previews.swift` and switch on the canvas (**Editor › Canvas**) for a live, tappable demo. The animation above is reproducible — `Scripts/record-gif.sh` renders it to `Assets/demo.gif`.
 
 ## Requirements & license
 

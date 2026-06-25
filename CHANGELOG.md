@@ -8,9 +8,13 @@ This project adheres to [Semantic Versioning](https://semver.org).
 ### Added
 - Programmatic selection API: `selectTag(_:)`, `deselectTag(_:)`,
   `clearSelection()`, `selectedTagsInOrder`, and `isSelecting`.
+- Programmatic action API: `copySelectedTags()`, `cutSelectedTags()`,
+  `groupSelectedTags()`, `deleteSelectedTags()`.
+- `Configuration.selectedTagTextColor` for the highlighted text color.
 - VoiceOver support: selection-change announcements and a selection hint.
 - Public `makeToolbarItems()` so the actions can be placed anywhere.
-- DocC catalog and a `CHANGELOG`.
+- DocC catalog, a `CHANGELOG`, and a reproducible README demo GIF
+  (`Scripts/record-gif.sh`).
 
 ### Changed
 - **Breaking:** accessibility strings moved into `Configuration.accessibility`
