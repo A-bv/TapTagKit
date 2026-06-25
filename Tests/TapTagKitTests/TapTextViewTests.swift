@@ -20,6 +20,29 @@ final class TapTextViewTests: XCTestCase {
         })
     }
 
+    func testInjectedServices_receiveHapticsAndAnnouncements() {
+        let services = SpyServices()
+        let textView = TapTextView()
+        textView.services = services
+        textView.text = "#swift #ios"
+
+        textView.beginSelection()
+        XCTAssertEqual(services.prepareCount, 1)
+
+        textView.selectTag("swift")
+        XCTAssertEqual(services.announcements.count, 1)
+        XCTAssertEqual(services.announcements.first?.contains("swift"), true)
+    }
+
+    private final class SpyServices: TapTextViewServices {
+        var prepareCount = 0
+        var hapticCount = 0
+        var announcements: [String] = []
+        func prepareHaptics() { prepareCount += 1 }
+        func playSelectionHaptic() { hapticCount += 1 }
+        func announce(_ message: String) { announcements.append(message) }
+    }
+
     func testBeginSelection_removesDuplicatesAutomatically() {
         let textView = TapTextView()
         textView.text = "#swift #swift #ios #IOS #swiftui"

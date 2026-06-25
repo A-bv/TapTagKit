@@ -3,6 +3,17 @@
 All notable changes to TapTagKit are documented here.
 This project adheres to [Semantic Versioning](https://semver.org).
 
+## [Unreleased]
+
+### Added
+- **Injectable services:** haptics and VoiceOver announcements now go through
+  an injectable `TapTextViewServices` (`textView.services`), defaulting to
+  `LiveTapTextViewServices`. Lets callers silence/customize haptics and lets
+  tests assert them with a fake.
+
+### Changed
+- The default haptic now respects **Reduce Motion** (skipped when enabled).
+
 ## [3.0.0] — 2026-06-25
 
 ### Added

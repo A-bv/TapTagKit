@@ -116,7 +116,9 @@ public class TapTextView: UITextView {
     /// The caller's text with its own styling, before our highlight overlay.
     private var baseText = NSAttributedString()
     private var isApplyingHighlight = false
-    private let feedbackGenerator = UIImpactFeedbackGenerator(style: .rigid)
+    /// Haptics and VoiceOver announcements, injectable for testing and to let
+    /// callers customize (e.g. silence haptics). Defaults to the live services.
+    public var services: TapTextViewServices = LiveTapTextViewServices()
     private var tapGestureRecognizer = UITapGestureRecognizer()
     private var activateButton = UIBarButtonItem()
     /// Pasteboard used by copy/cut. Injectable so tests avoid the shared global.
@@ -147,7 +149,7 @@ public class TapTextView: UITextView {
         resignFirstResponder()
         if removesDuplicatesOnSelection { cleanUpHashtags() }
         setEditingSuspended(true)
-        feedbackGenerator.prepare()
+        services.prepareHaptics()
         accessibilityHint = configuration.accessibility.selectionHint
         presentActionBar()
         tagDelegate?.tapTextViewDidStartSelection(self)
@@ -274,8 +276,7 @@ public class TapTextView: UITextView {
         let index = offset(from: beginningOfDocument, to: tapPosition)
         guard let word = hashtagWord(at: index) else { return }
 
-        feedbackGenerator.impactOccurred()
-        feedbackGenerator.prepare()   // keep the Taptic Engine warm for the next tap
+        services.playSelectionHaptic()
         processTappedWord(tappedWord: word)
     }
 
@@ -331,7 +332,7 @@ public class TapTextView: UITextView {
         let a11y = configuration.accessibility
         let message = selected ? a11y.didSelectAnnouncement("#\(tag)")
                                : a11y.didDeselectAnnouncement("#\(tag)")
-        UIAccessibility.post(notification: .announcement, argument: message)
+        services.announce(message)
     }
 
     // MARK: - Highlighting
