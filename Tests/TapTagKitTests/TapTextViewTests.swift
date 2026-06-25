@@ -20,6 +20,26 @@ final class TapTextViewTests: XCTestCase {
         })
     }
 
+    func testBeginSelection_removesDuplicatesAutomatically() {
+        let textView = TapTextView()
+        textView.text = "#swift #swift #ios #IOS #swiftui"
+
+        textView.beginSelection()
+
+        // Exact and case-insensitive duplicates gone, first occurrence kept.
+        XCTAssertEqual(textView.text, "#swift #ios #swiftui")
+    }
+
+    func testBeginSelection_respectsRemovesDuplicatesToggle() {
+        let textView = TapTextView()
+        textView.removesDuplicatesOnSelection = false
+        textView.text = "#swift #swift"
+
+        textView.beginSelection()
+
+        XCTAssertEqual(textView.text, "#swift #swift")
+    }
+
     func testActionBar_hostsItsControllerInTheVCTreeDuringSession() {
         let host = UIViewController()
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 320, height: 480))
