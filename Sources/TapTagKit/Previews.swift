@@ -2,27 +2,25 @@
 import UIKit
 import SwiftUI
 
-/// A live, tappable `TapTextView` for the Xcode canvas. It opens with `#swift`
-/// already selected so every occurrence is highlighted on sight; tap the
-/// activate button to enter selection mode and toggle tags yourself.
+/// A live, tappable `TapTextView` for the Xcode canvas. It opens a selection
+/// session with `#swift` already highlighted; the action toolbar manages itself.
 private final class PreviewViewController: UIViewController {
 
     private let tapTextView: TapTextView = {
-        let tv = TapTextView()
+        let textView = TapTextView()
         var config = TapTextView.Configuration()
         config.tagHighlightColor = .systemIndigo
-        config.placeholder = "Add some #tags…"
-        tv.configuration = config
+        textView.configuration = config
 
-        tv.font = .preferredFont(forTextStyle: .body)
-        tv.text = "#swift makes #iOS fun.\nShare #swift tips, learn #swift, build #iOS apps."
-        tv.isScrollEnabled = false
-        tv.textContainerInset = UIEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
-        tv.layer.cornerRadius = 12
-        tv.layer.borderWidth = 1
-        tv.layer.borderColor = UIColor.separator.cgColor
-        tv.translatesAutoresizingMaskIntoConstraints = false
-        return tv
+        textView.font = .preferredFont(forTextStyle: .body)
+        textView.text = "#swift makes #iOS fun.\nShare #swift tips, learn #swift, build #iOS apps."
+        textView.isScrollEnabled = false
+        textView.textContainerInset = UIEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
+        textView.layer.cornerRadius = 12
+        textView.layer.borderWidth = 1
+        textView.layer.borderColor = UIColor.separator.cgColor
+        textView.translatesAutoresizingMaskIntoConstraints = false
+        return textView
     }()
 
     private let hint: UILabel = {
@@ -39,8 +37,6 @@ private final class PreviewViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .systemGroupedBackground
         title = "TapTagKit"
-
-        tapTextView.addTagSelectorToolBar(viewController: self)
         navigationItem.rightBarButtonItem = tapTextView.makeTapTextViewButton()
 
         view.addSubview(tapTextView)
@@ -56,15 +52,9 @@ private final class PreviewViewController: UIViewController {
             hint.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -20),
         ])
 
-        // Open in selection mode so the toolbar is live and the canvas is
-        // immediately tappable, with every "#swift" already highlighted.
+        // Open a session so the self-contained toolbar shows, with #swift lit up.
         tapTextView.beginSelection()
         tapTextView.selectTag("swift")
-    }
-
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        navigationController?.setToolbarHidden(false, animated: false)
     }
 }
 

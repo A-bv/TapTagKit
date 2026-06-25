@@ -6,9 +6,19 @@ This project adheres to [Semantic Versioning](https://semver.org).
 ## [Unreleased]
 
 ### Changed
+- **Self-contained toolbar:** the selection actions now live in a `UIToolbar`
+  the view shows/hides itself. `addTagSelectorToolBar(viewController:)` is gone
+  and the delegate is no longer needed to reveal the bar — just
+  `makeTapTextViewButton()` (or `beginSelection()`). The bar also got polish:
+  destructive Delete in red, a prominent Done, and the highlight tint.
 - Tightened the MVVM split: tag/text composition (grouping, the `#`-prefixed
   list) and the grouping session state now live in `TagSelectionViewModel`;
   the view only renders. Extracted view helpers and narrowed access control.
+
+### Removed
+- **Breaking:** the built-in placeholder, keyboard avoidance, and the info "?"
+  button + alert — all the host app's concern. `Configuration` shrank to the
+  highlight colors and accessibility strings.
 
 ## [2.0.0] — 2026-06-25
 

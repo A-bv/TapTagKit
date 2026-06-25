@@ -24,25 +24,19 @@ Swift Package Manager:
 
 ```swift
 let textView = TapTextView()
-textView.addTagSelectorToolBar(viewController: self)                 // the actions toolbar
-navigationItem.rightBarButtonItem = textView.makeTapTextViewButton() // enters selection mode
+navigationItem.rightBarButtonItem = textView.makeTapTextViewButton()
 ```
 
-Reveal the toolbar only while a session is live:
-
-```swift
-extension MyViewController: TapTextViewDelegate {
-    func tapTextViewDidStartSelection(_ tv: TapTextView) { navigationController?.setToolbarHidden(false, animated: true) }
-    func tapTextViewDidFinishSelection(_ tv: TapTextView) { navigationController?.setToolbarHidden(true, animated: true) }
-}
-```
+That's the whole setup. Tapping the button starts a session; the action toolbar
+shows and hides itself — no navigation-controller wiring, no delegate dance. Or
+drive it yourself with `beginSelection()` / `endSelection()`.
 
 ## What you get
 
 - **One tap, every match** — selecting `#swift` highlights it everywhere at once.
-- **Batch toolbar** — copy · cut · group-to-top · deselect · delete.
-- **Drive it in code** — `selectTag`, `deselectTag`, `clearSelection`, `selectedTagsInOrder`.
-- **Yours to style** — highlight color, placeholder, keyboard avoidance, and every VoiceOver string, all via `Configuration`.
+- **Self-managing toolbar** — copy · cut · group-to-top · deselect · delete · done.
+- **Drive it in code** — `selectTag`, `deselectTag`, `groupSelectedTags`, `selectedTagsInOrder`.
+- **Yours to style** — highlight color and every VoiceOver string via `Configuration`.
 - **Won't trample your text** — fonts, colors, and links survive highlighting; awkward tags like `#c++` are matched whole.
 
 ## Customize
@@ -50,7 +44,6 @@ extension MyViewController: TapTextViewDelegate {
 ```swift
 var config = TapTextView.Configuration()
 config.tagHighlightColor = .systemIndigo
-config.placeholder = "Add some #tags…"
 config.accessibility.copyLabel = "Copier"   // localize any string
 textView.configuration = config
 ```
