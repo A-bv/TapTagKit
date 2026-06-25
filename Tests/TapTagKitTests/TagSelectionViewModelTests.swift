@@ -51,4 +51,30 @@ final class TagSelectionViewModelTests: XCTestCase {
 
         XCTAssertEqual(result, "and #sea today")
     }
+
+    func testHashtagList_joinsSelectedTagsWithHashes() {
+        let vm = TagSelectionViewModel()
+        _ = vm.select("sun")
+        _ = vm.select("sea")
+
+        XCTAssertEqual(vm.hashtagList, "#sun #sea")
+    }
+
+    func testGroupingSelectedTagsAtTop_liftsTagsAndKeepsSelection() {
+        let vm = TagSelectionViewModel()
+        _ = vm.select("x")
+
+        XCTAssertEqual(vm.groupingSelectedTagsAtTop(of: "a #x b"), "#x\n\na b")
+        XCTAssertEqual(vm.selectedTags, ["x"], "grouping must not change the selection")
+    }
+
+    func testGroupingSelectedTagsAtTop_separatorTracksSessionAndReset() {
+        let vm = TagSelectionViewModel()
+        _ = vm.select("x")
+
+        _ = vm.groupingSelectedTagsAtTop(of: "a #x")                                  // first → blank line
+        XCTAssertTrue(vm.groupingSelectedTagsAtTop(of: "b #x").hasPrefix("#x "))      // later → space
+        vm.resetGrouping()
+        XCTAssertTrue(vm.groupingSelectedTagsAtTop(of: "c #x").hasPrefix("#x\n\n"))   // reset → blank line
+    }
 }

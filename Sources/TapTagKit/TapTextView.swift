@@ -134,14 +134,13 @@ public class TapTextView: UITextView {
     }
 
     /// Selection state and pure tag/text logic; this view only renders it.
-    let viewModel = TagSelectionViewModel()
+    private let viewModel = TagSelectionViewModel()
     /// The caller's text with its own styling, before our highlight overlay.
     /// Highlighting is rebuilt from this each time so user attributes survive.
     private var baseText = NSAttributedString()
     private var isApplyingHighlight = false
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .rigid)
     private var tapGestureRecognizer = UITapGestureRecognizer()
-    private var firstTimeGrouped = false
     private var activateButton = UIBarButtonItem()
     private weak var presentingViewController: UIViewController?
     private let placeholderLabel = UILabel()
@@ -157,16 +156,17 @@ public class TapTextView: UITextView {
 
     private func installPlaceholderIfNeeded() {
         guard let placeholder = configuration.placeholder else {
-            placeholderLabel.removeFromSuperview()
-            if placeholderObserverInstalled {
-                placeholderObserverInstalled = false
-                NotificationCenter.default.removeObserver(
-                    self, name: UITextView.textDidChangeNotification, object: self)
-            }
+            removePlaceholder()
             return
         }
+        styleAndPositionPlaceholder(with: placeholder)
+        if placeholderLabel.superview == nil { addSubview(placeholderLabel) }
+        startObservingTextChangesForPlaceholder()
+        refreshPlaceholder()
+    }
 
-        placeholderLabel.text = placeholder
+    private func styleAndPositionPlaceholder(with text: String) {
+        placeholderLabel.text = text
         placeholderLabel.font = .italicSystemFont(ofSize: font?.pointSize ?? UIFont.labelFontSize)
         placeholderLabel.textColor = .placeholderText
         placeholderLabel.sizeToFit()
@@ -174,17 +174,22 @@ public class TapTextView: UITextView {
         placeholderLabel.frame.origin = CGPoint(
             x: textContainerInset.left + textContainer.lineFragmentPadding,
             y: textContainerInset.top)
+    }
 
-        if placeholderLabel.superview == nil {
-            addSubview(placeholderLabel)
-        }
-        if !placeholderObserverInstalled {
-            placeholderObserverInstalled = true
-            NotificationCenter.default.addObserver(
-                self, selector: #selector(refreshPlaceholder),
-                name: UITextView.textDidChangeNotification, object: self)
-        }
-        refreshPlaceholder()
+    private func startObservingTextChangesForPlaceholder() {
+        guard !placeholderObserverInstalled else { return }
+        placeholderObserverInstalled = true
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(refreshPlaceholder),
+            name: UITextView.textDidChangeNotification, object: self)
+    }
+
+    private func removePlaceholder() {
+        placeholderLabel.removeFromSuperview()
+        guard placeholderObserverInstalled else { return }
+        placeholderObserverInstalled = false
+        NotificationCenter.default.removeObserver(
+            self, name: UITextView.textDidChangeNotification, object: self)
     }
 
     @objc private func refreshPlaceholder() {
@@ -193,27 +198,36 @@ public class TapTextView: UITextView {
 
     private var keyboardObserversInstalled = false
 
+    // applyConfiguration() runs on every `configuration` assignment, so these
+    // must be idempotent — and must tear down when the flag is turned off.
     private func installKeyboardAvoidanceIfNeeded() {
-        // applyConfiguration() runs on every `configuration` assignment, so this
-        // must be idempotent — and must tear down when the flag is turned off.
         if configuration.avoidsKeyboard {
-            guard !keyboardObserversInstalled else { return }
-            keyboardObserversInstalled = true
-            NotificationCenter.default.addObserver(
-                self, selector: #selector(adjustForKeyboard),
-                name: UIResponder.keyboardWillHideNotification, object: nil)
-            NotificationCenter.default.addObserver(
-                self, selector: #selector(adjustForKeyboard),
-                name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
-        } else if keyboardObserversInstalled {
-            keyboardObserversInstalled = false
-            NotificationCenter.default.removeObserver(
-                self, name: UIResponder.keyboardWillHideNotification, object: nil)
-            NotificationCenter.default.removeObserver(
-                self, name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
-            contentInset = .zero
-            scrollIndicatorInsets = .zero
+            addKeyboardObservers()
+        } else {
+            removeKeyboardObservers()
         }
+    }
+
+    private func addKeyboardObservers() {
+        guard !keyboardObserversInstalled else { return }
+        keyboardObserversInstalled = true
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(adjustForKeyboard),
+            name: UIResponder.keyboardWillHideNotification, object: nil)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(adjustForKeyboard),
+            name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+    }
+
+    private func removeKeyboardObservers() {
+        guard keyboardObserversInstalled else { return }
+        keyboardObserversInstalled = false
+        NotificationCenter.default.removeObserver(
+            self, name: UIResponder.keyboardWillHideNotification, object: nil)
+        NotificationCenter.default.removeObserver(
+            self, name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+        contentInset = .zero
+        scrollIndicatorInsets = .zero
     }
 
     @objc private func adjustForKeyboard(notification: Notification) {
@@ -248,27 +262,29 @@ public class TapTextView: UITextView {
     /// Starts a tag-selection session: taps begin selecting hashtags and editing
     /// is suspended. The same thing the activate bar button does.
     @objc public func beginSelection() {
-        guard !tapGestureRecognizer.isEnabled else { return }
-        self.resignFirstResponder()
-        tapGestureRecognizer.isEnabled = true
-        isEditable = false
-        isSelectable = false
+        guard !isSelecting else { return }
+        resignFirstResponder()
+        setEditingSuspended(true)
         feedbackGenerator.prepare()
         accessibilityHint = configuration.accessibility.selectionHint
         tagDelegate?.tapTextViewDidStartSelection(self)
-        activateButton.isEnabled = false
     }
 
     /// Ends the session, clears the selection, and restores editing.
     @objc public func endSelection() {
         clearSelection()
-        tapGestureRecognizer.isEnabled = false
-        isEditable = true
-        isSelectable = true
-        firstTimeGrouped = false
+        viewModel.resetGrouping()
+        setEditingSuspended(false)
         accessibilityHint = nil
         tagDelegate?.tapTextViewDidFinishSelection(self)
-        activateButton.isEnabled = true
+    }
+
+    /// Switches the view between editing (normal) and selecting mode.
+    private func setEditingSuspended(_ suspended: Bool) {
+        tapGestureRecognizer.isEnabled = suspended
+        isEditable = !suspended
+        isSelectable = !suspended
+        activateButton.isEnabled = !suspended
     }
 
     private func installTapRecognizer() {
@@ -285,33 +301,33 @@ public class TapTextView: UITextView {
     /// only on the host's `toolbarItems`.
     public func makeToolbarItems() -> [UIBarButtonItem] {
         let a11y = configuration.accessibility
-        let buttons: [(symbol: String, action: Selector, label: String)] = [
-            ("doc.on.doc", #selector(copySelectedTags), a11y.copyLabel),
-            ("scissors", #selector(cutSelectedTags), a11y.cutLabel),
-            ("square.grid.2x2", #selector(groupSelectedTags), a11y.groupLabel),
-            ("clear", #selector(clearSelection), a11y.deselectLabel),
-            ("delete.right", #selector(deleteSelectedTags), a11y.deleteLabel),
-            ("questionmark.circle.fill", #selector(toolbarInfo), a11y.infoLabel),
+        let actions: [(symbol: String, selector: Selector, label: String, isInfo: Bool)] = [
+            ("doc.on.doc", #selector(copySelectedTags), a11y.copyLabel, false),
+            ("scissors", #selector(cutSelectedTags), a11y.cutLabel, false),
+            ("square.grid.2x2", #selector(groupSelectedTags), a11y.groupLabel, false),
+            ("clear", #selector(clearSelection), a11y.deselectLabel, false),
+            ("delete.right", #selector(deleteSelectedTags), a11y.deleteLabel, false),
+            ("questionmark.circle.fill", #selector(toolbarInfo), a11y.infoLabel, true),
         ]
 
         var toolbar: [UIBarButtonItem] = []
-
-        for (index, button) in buttons.enumerated() {
-            let item = UIBarButtonItem(
-                image: UIImage(systemName: button.symbol),
-                style: .plain, target: self, action: button.action)
-            item.accessibilityLabel = button.label
-
-            if index == buttons.count - 1 {
-                item.tintColor = .systemOrange
-            }
-            toolbar.append(item)
-            toolbar.append(UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: self, action: nil))
+        for action in actions {
+            toolbar.append(makeActionItem(action))
+            toolbar.append(.flexibleSpace())
         }
-
         toolbar.append(UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(endSelection)))
-
         return toolbar
+    }
+
+    private func makeActionItem(
+        _ action: (symbol: String, selector: Selector, label: String, isInfo: Bool)
+    ) -> UIBarButtonItem {
+        let item = UIBarButtonItem(
+            image: UIImage(systemName: action.symbol),
+            style: .plain, target: self, action: action.selector)
+        item.accessibilityLabel = action.label
+        if action.isInfo { item.tintColor = .systemOrange }
+        return item
     }
 
     // MARK: - Selection
@@ -385,8 +401,7 @@ public class TapTextView: UITextView {
     /// Copies the selected tags (space-separated, each prefixed with `#`) to the
     /// pasteboard.
     @objc public func copySelectedTags() {
-        let arrayToCopy = viewModel.selectedTags.map { "#" + $0 }
-        pasteboard.string = arrayToCopy.joined(separator: " ")
+        pasteboard.string = viewModel.hashtagList
     }
 
     /// Copies the selected tags, then removes them from the text.
@@ -396,32 +411,18 @@ public class TapTextView: UITextView {
     }
 
     /// Moves every selected tag to the top of the text, in selection order.
+    /// The tags stay selected (and highlighted) at their new position.
     @objc public func groupSelectedTags() {
-        let movedWords = viewModel.selectedTags
-        guard !movedWords.isEmpty else { return }
-
-        // Remove the tags from their current positions (also clears selection).
-        deleteSelectedTags()
-
-        // Re-insert them, grouped, at the top. The first grouping pushes the
-        // body down with a blank line; later groupings only need a space so the
-        // new tags don't fuse onto the previously grouped ones (#y#x).
-        let separator = firstTimeGrouped ? " " : "\n\n"
-        firstTimeGrouped = true
-        let grouped = movedWords.map { "#" + $0 }.joined(separator: " ")
-        text = grouped + separator + (text ?? "")
-
-        // Restore the selection (and highlight) on the moved tags.
-        movedWords.forEach { processTappedWord(tappedWord: $0) }
-
+        guard !viewModel.isEmpty else { return }
+        text = viewModel.groupingSelectedTagsAtTop(of: text ?? "")
+        applyHighlighting()
         scrollRangeToVisible(NSRange(location: 0, length: 0))
     }
 
     /// Removes every selected tag from the text.
     @objc public func deleteSelectedTags() {
-        let newText = viewModel.removingSelectedTags(from: text ?? "")
+        text = viewModel.removingSelectedTags(from: text ?? "")
         viewModel.clear()
-        text = newText
         applyHighlighting()
     }
 

@@ -14,7 +14,17 @@ final class TagSelectionViewModel {
     /// Compiled regexes are cached; a tag's pattern never changes.
     private var regexCache: [String: NSRegularExpression] = [:]
 
+    /// Whether a grouping has already happened this session, which decides the
+    /// separator the next grouping inserts.
+    private var hasGrouped = false
+
     var isEmpty: Bool { selectedTags.isEmpty }
+
+    /// The selection as a single `#`-prefixed, space-separated string — the form
+    /// used for the clipboard and for the grouped header.
+    var hashtagList: String {
+        selectedTags.map { "#" + $0 }.joined(separator: " ")
+    }
 
     // MARK: - Intents
 
@@ -46,6 +56,9 @@ final class TagSelectionViewModel {
 
     func clear() { selectedTags.removeAll() }
 
+    /// Resets per-session grouping state. Call when a selection session ends.
+    func resetGrouping() { hasGrouped = false }
+
     // MARK: - Text logic
 
     /// The hashtag word (without `#`) whose token contains `index`, else nil.
@@ -76,6 +89,18 @@ final class TagSelectionViewModel {
             let pattern = "(?<!\\S)#\(NSRegularExpression.escapedPattern(for: tag))(?!\\S) ?"
             return partial.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
         }
+    }
+
+    /// `text` with the selected tags lifted out of their positions and grouped
+    /// at the top (in selection order). The first grouping of a session pushes
+    /// the body down with a blank line; later ones use a space so the new header
+    /// doesn't fuse onto a previously grouped one (`#y#x`). Selection is kept.
+    func groupingSelectedTagsAtTop(of text: String) -> String {
+        guard !selectedTags.isEmpty else { return text }
+        let body = removingSelectedTags(from: text)
+        let separator = hasGrouped ? " " : "\n\n"
+        hasGrouped = true
+        return hashtagList + separator + body
     }
 
     // MARK: - Helpers

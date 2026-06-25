@@ -3,6 +3,13 @@
 All notable changes to TapTagKit are documented here.
 This project adheres to [Semantic Versioning](https://semver.org).
 
+## [Unreleased]
+
+### Changed
+- Tightened the MVVM split: tag/text composition (grouping, the `#`-prefixed
+  list) and the grouping session state now live in `TagSelectionViewModel`;
+  the view only renders. Extracted view helpers and narrowed access control.
+
 ## [2.0.0] — 2026-06-25
 
 ### Added
