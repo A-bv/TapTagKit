@@ -198,11 +198,26 @@ public class TapTextView: UITextView {
             bar.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -Constants.barHorizontalInset),
             bar.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -Constants.barBottomInset),
         ])
+        // Add the bar's SwiftUI hosting controller to the VC tree so its
+        // confirmation alert can present.
+        if let owner = owningViewController { bar.attach(to: owner) }
     }
 
     private func dismissActionBar() {
+        activeBar?.detach()
         activeBar?.removeFromSuperview()
         activeBar = nil
+    }
+
+    /// The nearest view controller up the responder chain, used to host the
+    /// action bar's SwiftUI controller.
+    private var owningViewController: UIViewController? {
+        var responder: UIResponder? = self
+        while let next = responder?.next {
+            if let viewController = next as? UIViewController { return viewController }
+            responder = next
+        }
+        return nil
     }
 
     public override func willMove(toWindow newWindow: UIWindow?) {

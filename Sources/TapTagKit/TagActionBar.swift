@@ -82,6 +82,22 @@ final class TagActionBar: UIView {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+
+    /// Adds the SwiftUI hosting controller to `parent`'s view-controller tree so
+    /// presentations from the bar (the Delete confirmation alert) work. Call
+    /// once the bar is already in the view hierarchy.
+    func attach(to parent: UIViewController) {
+        guard hostingController.parent == nil else { return }
+        parent.addChild(hostingController)
+        hostingController.didMove(toParent: parent)
+    }
+
+    /// Removes the hosting controller from its parent view controller.
+    func detach() {
+        guard hostingController.parent != nil else { return }
+        hostingController.willMove(toParent: nil)
+        hostingController.removeFromParent()
+    }
 }
 
 private struct TagActionBarContent: View {

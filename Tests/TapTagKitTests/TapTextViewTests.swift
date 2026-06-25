@@ -20,6 +20,24 @@ final class TapTextViewTests: XCTestCase {
         })
     }
 
+    func testActionBar_hostsItsControllerInTheVCTreeDuringSession() {
+        let host = UIViewController()
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 320, height: 480))
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+
+        let textView = TapTextView()
+        host.view.addSubview(textView)
+
+        textView.beginSelection()
+        // The bar's SwiftUI hosting controller must be a child VC so its alert
+        // (Delete confirmation) can present.
+        XCTAssertFalse(host.children.isEmpty)
+
+        textView.endSelection()
+        XCTAssertTrue(host.children.isEmpty)
+    }
+
     func testDoneAction_endsSelectionWithoutConfirmation() {
         let textView = TapTextView()
         textView.beginSelection()
