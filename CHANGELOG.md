@@ -3,7 +3,7 @@
 All notable changes to TapTagKit are documented here.
 This project adheres to [Semantic Versioning](https://semver.org).
 
-## [2.0.0] — Unreleased
+## [2.0.0] — 2026-06-25
 
 ### Added
 - Programmatic selection API: `selectTag(_:)`, `deselectTag(_:)`,
