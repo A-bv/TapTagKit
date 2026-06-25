@@ -60,6 +60,34 @@ final class TapTextViewTests: XCTestCase {
         XCTAssertTrue(textView.selectedTagsInOrder.isEmpty)
     }
 
+    func testCopySelectedTags_writesHashPrefixedListToPasteboard() {
+        let textView = TapTextView()
+        textView.text = "#sun and #sea"
+        textView.selectTag("sun")
+        textView.selectTag("sea")
+
+        textView.copySelectedTags()
+
+        XCTAssertEqual(UIPasteboard.general.string, "#sun #sea")
+    }
+
+    func testHighlight_usesConfiguredSelectedTextColor() {
+        let textView = TapTextView()
+        var config = TapTextView.Configuration()
+        config.selectedTagTextColor = .systemYellow
+        textView.configuration = config
+        textView.text = "#sun"
+
+        textView.selectTag("sun")
+
+        var found = false
+        textView.attributedText.enumerateAttribute(
+            .foregroundColor, in: NSRange(location: 0, length: textView.attributedText.length)) { value, _, _ in
+            if let color = value as? UIColor, color == .systemYellow { found = true }
+        }
+        XCTAssertTrue(found)
+    }
+
     func testTappingAWord_togglesItsSelection() {
         let textView = TapTextView()
         textView.text = "#sun and #sea"
@@ -76,7 +104,7 @@ final class TapTextViewTests: XCTestCase {
         textView.text = "#sun and #sea"
         textView.processTappedWord(tappedWord: "sun")
 
-        textView.deleteTagSelection()
+        textView.deleteSelectedTags()
 
         XCTAssertFalse(textView.text.contains("#sun"))
         XCTAssertTrue(textView.text.contains("#sea"))
@@ -152,10 +180,10 @@ final class TapTextViewTests: XCTestCase {
         textView.text = "a #x b #y c"
 
         textView.processTappedWord(tappedWord: "x")
-        textView.groupTagSelection()                 // "#x\n\na b #y c"
+        textView.groupSelectedTags()                 // "#x\n\na b #y c"
         textView.processTappedWord(tappedWord: "x")  // deselect, leaving #x at the top
         textView.processTappedWord(tappedWord: "y")
-        textView.groupTagSelection()                 // #y must land above #x, not fuse
+        textView.groupSelectedTags()                 // #y must land above #x, not fuse
 
         XCTAssertTrue(textView.text.hasPrefix("#y #x"),
                       "Repeated grouping must not fuse tags, got: \(textView.text ?? "")")
@@ -168,7 +196,7 @@ final class TapTextViewTests: XCTestCase {
 
         textView.processTappedWord(tappedWord: "two")
         textView.processTappedWord(tappedWord: "one")
-        textView.groupTagSelection()
+        textView.groupSelectedTags()
 
         XCTAssertTrue(textView.text.hasPrefix("#two #one"),
                       "Grouped tags should appear at the top in tap order, got: \(textView.text ?? "")")
@@ -180,7 +208,7 @@ final class TapTextViewTests: XCTestCase {
         textView.text = "#sun and #sea today"
         textView.processTappedWord(tappedWord: "sun")
 
-        textView.deleteTagSelection()
+        textView.deleteSelectedTags()
 
         XCTAssertFalse(textView.text.contains("  "), "Deleting a tag should not leave a double space")
         XCTAssertTrue(textView.text.contains("#sea"))

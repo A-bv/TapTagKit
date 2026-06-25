@@ -27,6 +27,8 @@ public class TapTextView: UITextView {
         public var toolbarInfoMessage: String
         public var infoButtonTitle: String
         public var tagHighlightColor: UIColor
+        /// Text color drawn over a highlighted tag.
+        public var selectedTagTextColor: UIColor
         /// Shown while the text view is empty; nil disables the placeholder.
         public var placeholder: String?
         /// Keeps the text content above the keyboard via content insets.
@@ -55,6 +57,7 @@ public class TapTextView: UITextView {
             toolbarInfoMessage: String = "Copy, cut, group, deselect, or delete every selected hashtag at once.",
             infoButtonTitle: String = "OK",
             tagHighlightColor: UIColor = UIColor(red: 0.808, green: 0.027, blue: 0.333, alpha: 1),
+            selectedTagTextColor: UIColor = .white,
             placeholder: String? = nil,
             avoidsKeyboard: Bool = false,
             accessibility: Accessibility = Accessibility()
@@ -63,6 +66,7 @@ public class TapTextView: UITextView {
             self.toolbarInfoMessage = toolbarInfoMessage
             self.infoButtonTitle = infoButtonTitle
             self.tagHighlightColor = tagHighlightColor
+            self.selectedTagTextColor = selectedTagTextColor
             self.placeholder = placeholder
             self.avoidsKeyboard = avoidsKeyboard
             self.accessibility = accessibility
@@ -99,8 +103,11 @@ public class TapTextView: UITextView {
         applyHighlighting()
     }
 
-    /// Clears the whole selection.
-    public func clearSelection() { cleanTagSelection() }
+    /// Clears the whole selection (without changing the text).
+    @objc public func clearSelection() {
+        viewModel.clear()
+        applyHighlighting()
+    }
 
     // MARK: - Init
 
@@ -112,6 +119,10 @@ public class TapTextView: UITextView {
     public required init?(coder: NSCoder) {
         super.init(coder: coder)
         installTapRecognizer()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     public override var text: String! {
@@ -247,7 +258,7 @@ public class TapTextView: UITextView {
     }
 
     @objc private func doneTagSelection() {
-        cleanTagSelection()
+        clearSelection()
         tapGestureRecognizer.isEnabled = false
         isEditable = true
         isSelectable = true
@@ -272,11 +283,11 @@ public class TapTextView: UITextView {
     public func makeToolbarItems() -> [UIBarButtonItem] {
         let a11y = configuration.accessibility
         let buttons: [(symbol: String, action: Selector, label: String)] = [
-            ("doc.on.doc", #selector(copyTagSelection), a11y.copyLabel),
-            ("scissors", #selector(cutTagSelection), a11y.cutLabel),
-            ("square.grid.2x2", #selector(groupTagSelection), a11y.groupLabel),
-            ("clear", #selector(cleanTagSelection), a11y.deselectLabel),
-            ("delete.right", #selector(deleteTagSelection), a11y.deleteLabel),
+            ("doc.on.doc", #selector(copySelectedTags), a11y.copyLabel),
+            ("scissors", #selector(cutSelectedTags), a11y.cutLabel),
+            ("square.grid.2x2", #selector(groupSelectedTags), a11y.groupLabel),
+            ("clear", #selector(clearSelection), a11y.deselectLabel),
+            ("delete.right", #selector(deleteSelectedTags), a11y.deleteLabel),
             ("questionmark.circle.fill", #selector(toolbarInfo), a11y.infoLabel),
         ]
 
@@ -354,7 +365,7 @@ public class TapTextView: UITextView {
         for range in viewModel.highlightRanges(in: baseText.string) {
             highlighted.addAttributes([
                 .backgroundColor: configuration.tagHighlightColor,
-                .foregroundColor: UIColor.white,
+                .foregroundColor: configuration.selectedTagTextColor,
             ], range: range)
         }
         isApplyingHighlight = true
@@ -362,24 +373,28 @@ public class TapTextView: UITextView {
         isApplyingHighlight = false
     }
 
-    // MARK: - Toolbar actions
+    // MARK: - Tag actions
 
-    @objc private func copyTagSelection() {
+    /// Copies the selected tags (space-separated, each prefixed with `#`) to the
+    /// general pasteboard.
+    @objc public func copySelectedTags() {
         let arrayToCopy = viewModel.selectedTags.map { "#" + $0 }
         UIPasteboard.general.string = arrayToCopy.joined(separator: " ")
     }
 
-    @objc private func cutTagSelection() {
-        copyTagSelection()
-        deleteTagSelection()
+    /// Copies the selected tags, then removes them from the text.
+    @objc public func cutSelectedTags() {
+        copySelectedTags()
+        deleteSelectedTags()
     }
 
-    @objc func groupTagSelection() {
+    /// Moves every selected tag to the top of the text, in selection order.
+    @objc public func groupSelectedTags() {
         let movedWords = viewModel.selectedTags
         guard !movedWords.isEmpty else { return }
 
         // Remove the tags from their current positions (also clears selection).
-        deleteTagSelection()
+        deleteSelectedTags()
 
         // Re-insert them, grouped, at the top. The first grouping pushes the
         // body down with a blank line; later groupings only need a space so the
@@ -395,12 +410,8 @@ public class TapTextView: UITextView {
         scrollRangeToVisible(NSRange(location: 0, length: 0))
     }
 
-    @objc private func cleanTagSelection() {
-        viewModel.clear()
-        applyHighlighting()
-    }
-
-    @objc func deleteTagSelection() {
+    /// Removes every selected tag from the text.
+    @objc public func deleteSelectedTags() {
         let newText = viewModel.removingSelectedTags(from: text ?? "")
         viewModel.clear()
         text = newText
