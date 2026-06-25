@@ -26,7 +26,27 @@ final class TagActionBar: UIView {
         let title: String
         let tint: UIColor?
         let isProminent: Bool
+        let confirmationTitle: String?
+        let cancelTitle: String?
         let handler: () -> Void
+
+        init(
+            symbol: String,
+            title: String,
+            tint: UIColor?,
+            isProminent: Bool,
+            confirmationTitle: String? = nil,
+            cancelTitle: String? = nil,
+            handler: @escaping () -> Void
+        ) {
+            self.symbol = symbol
+            self.title = title
+            self.tint = tint
+            self.isProminent = isProminent
+            self.confirmationTitle = confirmationTitle
+            self.cancelTitle = cancelTitle
+            self.handler = handler
+        }
     }
 
     private(set) var items: [Item]
@@ -66,6 +86,8 @@ private struct TagActionBarContent: View {
     let items: [TagActionBar.Item]
     let defaultTint: UIColor
 
+    @State private var pendingConfirmation: TagActionBar.Item?
+
     var body: some View {
         HStack(spacing: Constants.stackSpacing) {
             ForEach(items) { item in
@@ -81,12 +103,25 @@ private struct TagActionBarContent: View {
             y: Constants.shadowOffset
         )
         .ignoresSafeArea()
+        .alert(item: $pendingConfirmation) { item in
+            Alert(
+                title: Text(item.confirmationTitle ?? item.title),
+                primaryButton: .destructive(Text(item.title), action: item.handler),
+                secondaryButton: .cancel(Text(item.cancelTitle ?? "Cancel"))
+            )
+        }
     }
 
     private func actionButton(for item: TagActionBar.Item) -> some View {
         let tint = Color(uiColor: item.tint ?? defaultTint)
 
-        return Button(action: item.handler) {
+        return Button {
+            if item.confirmationTitle == nil {
+                item.handler()
+            } else {
+                pendingConfirmation = item
+            }
+        } label: {
             VStack(spacing: Constants.imagePadding) {
                 Image(systemName: item.symbol)
                 Text(item.title)

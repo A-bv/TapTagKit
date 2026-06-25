@@ -40,9 +40,8 @@ public class TapTextView: UITextView {
             public var deleteLabel = "Delete"
             public var doneLabel = "Done"
             public var selectionHint = "Double tap a hashtag to select it."
-            /// Shown on the confirmation alert when finishing with edits made.
-            public var keepChangesTitle = "Keep your changes?"
-            public var undoLabel = "Undo"
+            public var deleteConfirmationTitle = "Are you sure?"
+            public var cancelLabel = "Cancel"
             public var didSelectAnnouncement: (_ tag: String) -> String = { "Selected \($0)" }
             public var didDeselectAnnouncement: (_ tag: String) -> String = { "Deselected \($0)" }
             public init() {}
@@ -101,8 +100,6 @@ public class TapTextView: UITextView {
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .rigid)
     private var tapGestureRecognizer = UITapGestureRecognizer()
     private var activateButton = UIBarButtonItem()
-    /// Text captured when the session began, restored by Undo.
-    private var initialText: String?
     /// Pasteboard used by copy/cut. Injectable so tests avoid the shared global.
     var pasteboard: UIPasteboard = .general
 
@@ -124,11 +121,10 @@ public class TapTextView: UITextView {
         return activateButton
     }
 
-    /// Starts a session: snapshots the text for Undo, removes duplicate/invalid
-    /// hashtags, suspends editing, and shows the action bar.
+    /// Starts a session: removes duplicate/invalid hashtags, suspends editing,
+    /// and shows the action bar.
     @objc public func beginSelection() {
         guard !isSelecting else { return }
-        initialText = text
         resignFirstResponder()
         if removesDuplicatesOnSelection { cleanUpHashtags() }
         setEditingSuspended(true)
@@ -139,7 +135,7 @@ public class TapTextView: UITextView {
     }
 
     /// Ends the session immediately: clears the selection, hides the bar, and
-    /// restores editing. (The Done button routes through `confirmEndSelection`.)
+    /// restores editing.
     @objc public func endSelection() {
         clearSelection()
         viewModel.resetGrouping()
@@ -157,38 +153,6 @@ public class TapTextView: UITextView {
         text = cleanedText
         applyHighlighting()
         notifyTextChanged()
-    }
-
-    /// The Done button's action: if edits were made, offer Undo (restore the
-    /// text as it was when the session began) or Done (keep them).
-    @objc private func confirmEndSelection() {
-        guard text != initialText, let presenter = owningViewController else {
-            endSelection()
-            return
-        }
-        let a11y = configuration.accessibility
-        let alert = UIAlertController(title: a11y.keepChangesTitle, message: nil, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: a11y.undoLabel, style: .destructive) { [weak self] _ in
-            guard let self else { return }
-            if let initialText {
-                text = initialText
-                notifyTextChanged()
-            }
-            endSelection()
-        })
-        alert.addAction(UIAlertAction(title: a11y.doneLabel, style: .default) { [weak self] _ in
-            self?.endSelection()
-        })
-        presenter.present(alert, animated: true)
-    }
-
-    private var owningViewController: UIViewController? {
-        var responder: UIResponder? = self
-        while let next = responder?.next {
-            if let viewController = next as? UIViewController { return viewController }
-            responder = next
-        }
-        return nil
     }
 
     private func setEditingSuspended(_ suspended: Bool) {
@@ -239,10 +203,17 @@ public class TapTextView: UITextView {
                   handler: { [weak self] in self?.groupSelectedTags() }),
             .init(symbol: "xmark.circle", title: a11y.deselectLabel, tint: nil, isProminent: false,
                   handler: { [weak self] in self?.clearSelection() }),
-            .init(symbol: "trash", title: a11y.deleteLabel, tint: .systemRed, isProminent: false,
-                  handler: { [weak self] in self?.deleteSelectedTags() }),
+            .init(
+                symbol: "trash",
+                title: a11y.deleteLabel,
+                tint: .systemRed,
+                isProminent: false,
+                confirmationTitle: a11y.deleteConfirmationTitle,
+                cancelTitle: a11y.cancelLabel,
+                handler: { [weak self] in self?.deleteSelectedTags() }
+            ),
             .init(symbol: "checkmark", title: a11y.doneLabel, tint: nil, isProminent: true,
-                  handler: { [weak self] in self?.confirmEndSelection() }),
+                  handler: { [weak self] in self?.endSelection() }),
         ]
         return TagActionBar(items: items, tint: configuration.tagHighlightColor)
     }

@@ -12,7 +12,18 @@ final class TapTextViewTests: XCTestCase {
         // copy, cut, group, deselect, delete, done — each captioned/labeled.
         XCTAssertEqual(items.count, 6)
         XCTAssertTrue(items.allSatisfy { !$0.title.isEmpty })
-        XCTAssertTrue(items.contains { $0.title == "Done" })
+        XCTAssertTrue(items.contains { $0.title == "Done" && $0.confirmationTitle == nil })
+        XCTAssertTrue(items.contains { $0.title == "Delete" && $0.confirmationTitle == "Are you sure?" })
+    }
+
+    func testDoneAction_endsSelectionWithoutConfirmation() {
+        let textView = TapTextView()
+        textView.beginSelection()
+        let done = textView.makeActionBar().items.first { $0.title == "Done" }
+
+        done?.handler()
+
+        XCTAssertFalse(textView.isSelecting)
     }
 
     func testTapTextViewButton_usesTheConfiguredAccessibilityLabel() {

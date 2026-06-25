@@ -59,7 +59,7 @@ The text and selection-session state stay synchronized through bindings.
 - **One tap, every match** — selecting `#swift` highlights it everywhere at once.
 - **Self-managing captioned bar** — copy · cut · group-to-top · deselect · delete · done, each with a label; appears and hides itself.
 - **Tidies up on entry** — duplicate and invalid hashtags are removed when a session starts (toggle with `removesDuplicatesOnSelection`).
-- **Undo to where you started** — tap Done and choose Undo to restore the original text.
+- **Safe destructive actions** — Delete asks for confirmation; Done finishes immediately.
 - **Drive it in code** — `selectTag`, `deselectTag`, `groupSelectedTags`, `cleanUpHashtags`, `selectedTagsInOrder`.
 - **Yours to style** — highlight color and every label/caption via `Configuration` (localize once, used for the caption *and* VoiceOver).
 - **Won't trample your text** — fonts, colors, and links survive highlighting; awkward tags like `#c++` are matched whole.

@@ -9,8 +9,8 @@ This project adheres to [Semantic Versioning](https://semver.org).
 - **Captioned action bar:** the bar is now a grouped, rounded card whose
   buttons pair an icon with a small caption (so the actions are self-explanatory
   and the info "?" button is unnecessary). Built as `TagActionBar`.
-- **Undo to initial state:** tapping Done offers Undo (restore the text as it
-  was when the session began) or Done (keep the edits).
+- **Delete confirmation:** tapping Delete asks for confirmation before removing
+  the selected tags; Done finishes the session immediately.
 - **Hashtag clean-up:** `cleanUpHashtags()` removes duplicate (case-insensitive)
   and invalid hashtags; runs automatically on `beginSelection()` unless
   `removesDuplicatesOnSelection` is set to `false`.
