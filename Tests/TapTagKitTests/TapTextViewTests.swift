@@ -1,17 +1,18 @@
+import SwiftUI
 import XCTest
 @testable import TapTagKit
 
 @MainActor
 final class TapTextViewTests: XCTestCase {
 
-    func testActionBar_hasSixCaptionedButtons() {
+    func testActionBar_hasSixCaptionedItems() {
         let textView = TapTextView()
-        let buttons = textView.makeActionBar().buttons
+        let items = textView.makeActionBar().items
 
         // copy, cut, group, deselect, delete, done — each captioned/labeled.
-        XCTAssertEqual(buttons.count, 6)
-        XCTAssertTrue(buttons.allSatisfy { $0.accessibilityLabel != nil })
-        XCTAssertTrue(buttons.contains { $0.configuration?.title == "Done" })
+        XCTAssertEqual(items.count, 6)
+        XCTAssertTrue(items.allSatisfy { !$0.title.isEmpty })
+        XCTAssertTrue(items.contains { $0.title == "Done" })
     }
 
     func testTapTextViewButton_usesTheConfiguredAccessibilityLabel() {
@@ -31,8 +32,29 @@ final class TapTextViewTests: XCTestCase {
         config.accessibility.copyLabel = "Copier"
         textView.configuration = config
 
-        let titles = textView.makeActionBar().buttons.compactMap { $0.configuration?.title }
+        let titles = textView.makeActionBar().items.map(\.title)
         XCTAssertTrue(titles.contains("Copier"))
+    }
+
+    func testSwiftUIAdapter_propagatesTextAndSelectionChanges() {
+        var text = "#swift"
+        var isSelecting = false
+        let view = TapTagView(
+            text: Binding(get: { text }, set: { text = $0 }),
+            isSelecting: Binding(get: { isSelecting }, set: { isSelecting = $0 })
+        )
+        let coordinator = view.makeCoordinator()
+        let textView = TapTextView()
+
+        textView.text = "#swift #ios"
+        coordinator.tapTextViewDidChangeText(textView)
+        coordinator.tapTextViewDidStartSelection(textView)
+
+        XCTAssertEqual(text, "#swift #ios")
+        XCTAssertTrue(isSelecting)
+
+        coordinator.tapTextViewDidFinishSelection(textView)
+        XCTAssertFalse(isSelecting)
     }
 
     func testCleanUpHashtags_removesDuplicates() {

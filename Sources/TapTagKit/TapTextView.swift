@@ -3,6 +3,7 @@ import UIKit
 public protocol TapTextViewDelegate: AnyObject {
     func tapTextViewDidStartSelection(_ textView: TapTextView)
     func tapTextViewDidFinishSelection(_ textView: TapTextView)
+    func tapTextViewDidChangeText(_ textView: TapTextView)
     func tapTextView(_ textView: TapTextView, didSelect tag: String)
     func tapTextView(_ textView: TapTextView, didDeselect tag: String)
 }
@@ -10,6 +11,7 @@ public protocol TapTextViewDelegate: AnyObject {
 public extension TapTextViewDelegate {
     func tapTextViewDidStartSelection(_ textView: TapTextView) {}
     func tapTextViewDidFinishSelection(_ textView: TapTextView) {}
+    func tapTextViewDidChangeText(_ textView: TapTextView) {}
     func tapTextView(_ textView: TapTextView, didSelect tag: String) {}
     func tapTextView(_ textView: TapTextView, didDeselect tag: String) {}
 }
@@ -150,8 +152,11 @@ public class TapTextView: UITextView {
     /// Removes duplicate and invalid hashtags from the text. Run automatically
     /// when a session starts; also callable on its own.
     public func cleanUpHashtags() {
-        text = viewModel.cleanedText(text ?? "")
+        let cleanedText = viewModel.cleanedText(text ?? "")
+        guard cleanedText != text else { return }
+        text = cleanedText
         applyHighlighting()
+        notifyTextChanged()
     }
 
     /// The Done button's action: if edits were made, offer Undo (restore the
@@ -165,7 +170,10 @@ public class TapTextView: UITextView {
         let alert = UIAlertController(title: a11y.keepChangesTitle, message: nil, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: a11y.undoLabel, style: .destructive) { [weak self] _ in
             guard let self else { return }
-            if let initialText { text = initialText }
+            if let initialText {
+                text = initialText
+                notifyTextChanged()
+            }
             endSelection()
         })
         alert.addAction(UIAlertAction(title: a11y.doneLabel, style: .default) { [weak self] _ in
@@ -287,6 +295,10 @@ public class TapTextView: UITextView {
         applyHighlighting()
     }
 
+    private func notifyTextChanged() {
+        tagDelegate?.tapTextViewDidChangeText(self)
+    }
+
     private func notifyDelegate(of tag: String, selected: Bool) {
         if selected {
             tagDelegate?.tapTextView(self, didSelect: tag)
@@ -346,6 +358,7 @@ public class TapTextView: UITextView {
         guard !viewModel.isEmpty else { return }
         text = viewModel.groupingSelectedTagsAtTop(of: text ?? "")
         applyHighlighting()
+        notifyTextChanged()
         scrollRangeToVisible(NSRange(location: 0, length: 0))
     }
 
@@ -354,5 +367,6 @@ public class TapTextView: UITextView {
         text = viewModel.removingSelectedTags(from: text ?? "")
         viewModel.clear()
         applyHighlighting()
+        notifyTextChanged()
     }
 }

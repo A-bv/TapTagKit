@@ -31,6 +31,25 @@ That's the whole setup. Tapping the button starts a session; the action toolbar
 shows and hides itself — no navigation-controller wiring, no delegate dance. Or
 drive it yourself with `beginSelection()` / `endSelection()`.
 
+### SwiftUI
+
+```swift
+@State private var text = "Try #swift and #swiftui"
+@State private var isSelecting = false
+
+var body: some View {
+    VStack {
+        TapTagView(text: $text, isSelecting: $isSelecting)
+        Button(isSelecting ? "Done" : "Select hashtags") {
+            isSelecting.toggle()
+        }
+    }
+}
+```
+
+`TapTagView` is a native SwiftUI adapter backed by the same UIKit text engine.
+The text and selection-session state stay synchronized through bindings.
+
 ## What you get
 
 <p align="center">

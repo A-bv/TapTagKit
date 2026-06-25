@@ -22,6 +22,7 @@ highlight color and accessibility labels are injectable through
 ### Essentials
 
 - ``TapTextView``
+- ``TapTagView``
 - ``TapTextView/Configuration``
 - ``TapTextViewDelegate``
 
