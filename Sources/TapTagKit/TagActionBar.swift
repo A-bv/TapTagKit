@@ -1,5 +1,18 @@
 import UIKit
 
+private enum Constants {
+    static let cornerRadius: CGFloat = 22
+    static let shadowOpacity: Float = 0.12
+    static let shadowRadius: CGFloat = 14
+    static let shadowOffset = CGSize(width: 0, height: 4)
+    static let stackSpacing: CGFloat = 2
+    static let stackInset: CGFloat = 8
+    static let imagePadding: CGFloat = 5
+    static let contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 4, bottom: 8, trailing: 4)
+    static let titleFontSize: CGFloat = 11
+    static let prominentBackgroundAlpha: CGFloat = 0.15
+}
+
 /// The grouped, captioned action bar shown during a selection session: a
 /// rounded floating card whose buttons each pair an SF Symbol with a small
 /// label. Self-contained — `TapTextView` presents and dismisses it.
@@ -20,26 +33,26 @@ final class TagActionBar: UIView {
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
         backgroundColor = .secondarySystemBackground
-        layer.cornerRadius = 22
+        layer.cornerRadius = Constants.cornerRadius
         layer.cornerCurve = .continuous
         layer.shadowColor = UIColor.black.cgColor
-        layer.shadowOpacity = 0.12
-        layer.shadowRadius = 14
-        layer.shadowOffset = CGSize(width: 0, height: 4)
+        layer.shadowOpacity = Constants.shadowOpacity
+        layer.shadowRadius = Constants.shadowRadius
+        layer.shadowOffset = Constants.shadowOffset
 
         buttons = items.map { makeButton($0, defaultTint: tint) }
         let stack = UIStackView(arrangedSubviews: buttons)
         stack.axis = .horizontal
         stack.distribution = .fillEqually
         stack.alignment = .fill
-        stack.spacing = 2
+        stack.spacing = Constants.stackSpacing
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
         NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: topAnchor, constant: 8),
-            stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8),
-            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
-            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
+            stack.topAnchor.constraint(equalTo: topAnchor, constant: Constants.stackInset),
+            stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -Constants.stackInset),
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Constants.stackInset),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Constants.stackInset),
         ])
     }
 
@@ -50,15 +63,18 @@ final class TagActionBar: UIView {
         config.image = UIImage(systemName: item.symbol)
         config.title = item.title
         config.imagePlacement = .top
-        config.imagePadding = 5
-        config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 4, bottom: 8, trailing: 4)
+        config.imagePadding = Constants.imagePadding
+        config.contentInsets = Constants.contentInsets
         config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
             var outgoing = incoming
-            outgoing.font = .systemFont(ofSize: 11, weight: .medium)
+            outgoing.font = .systemFont(ofSize: Constants.titleFontSize, weight: .medium)
             return outgoing
         }
         config.baseForegroundColor = item.tint ?? defaultTint
-        if item.isProminent { config.baseBackgroundColor = (item.tint ?? defaultTint).withAlphaComponent(0.15) }
+        if item.isProminent {
+            config.baseBackgroundColor = (item.tint ?? defaultTint)
+                .withAlphaComponent(Constants.prominentBackgroundAlpha)
+        }
 
         let button = UIButton(configuration: config, primaryAction: UIAction { _ in item.handler() })
         button.accessibilityLabel = item.title
