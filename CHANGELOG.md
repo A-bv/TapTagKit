@@ -3,7 +3,7 @@
 All notable changes to TapTagKit are documented here.
 This project adheres to [Semantic Versioning](https://semver.org).
 
-## [Unreleased]
+## [3.1.0] — 2026-06-25
 
 ### Added
 - **Injectable services:** haptics and VoiceOver announcements now go through
