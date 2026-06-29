@@ -7,8 +7,6 @@ private enum Constants {
     /// Boundaries that match `#tag` only as a whole whitespace-delimited token.
     static let tagBoundaryPrefix = "(?<!\\S)#"
     static let tagBoundarySuffix = "(?!\\S)"
-    /// One optional trailing space, swallowed when removing a tag.
-    static let trailingSpacePattern = " ?"
     static let spaceCharacter: unichar = 32
     /// Separators inserted above the grouped tags (first grouping vs. later).
     static let firstGroupSeparator = "\n\n"
@@ -28,6 +26,10 @@ final class TagSelectionViewModel {
 
     /// Compiled regexes are cached; a tag's pattern never changes.
     private var regexCache: [String: NSRegularExpression] = [:]
+
+    /// The hashtag-token regex (`#\S+`) is constant, so compile it once and
+    /// reuse it across taps, token scans, and clean-up.
+    private lazy var tokenRegex = try? NSRegularExpression(pattern: Constants.tokenPattern)
 
     /// Whether a grouping has already happened this session, which decides the
     /// separator the next grouping inserts.
@@ -79,7 +81,7 @@ final class TagSelectionViewModel {
     /// The hashtag word (without `#`) whose token contains `index`, else nil.
     /// A hashtag is `#` up to the next whitespace, so `#c++` is captured whole.
     func hashtagWord(in text: String, at index: Int) -> String? {
-        guard let regex = try? NSRegularExpression(pattern: Constants.tokenPattern) else { return nil }
+        guard let regex = tokenRegex else { return nil }
         let ns = text as NSString
         for match in regex.matches(in: text, range: NSRange(location: 0, length: ns.length))
         where NSLocationInRange(index, match.range) {
@@ -91,7 +93,7 @@ final class TagSelectionViewModel {
     /// Every hashtag token in `text` as its word (without `#`) and range —
     /// used to expose each tag as a VoiceOver element.
     func hashtagTokens(in text: String) -> [(word: String, range: NSRange)] {
-        guard let regex = try? NSRegularExpression(pattern: Constants.tokenPattern) else { return [] }
+        guard let regex = tokenRegex else { return [] }
         let ns = text as NSString
         return regex.matches(in: text, range: NSRange(location: 0, length: ns.length)).compactMap { match in
             let word = String(ns.substring(with: match.range).dropFirst())
@@ -108,40 +110,77 @@ final class TagSelectionViewModel {
         }
     }
 
-    /// `text` with every selected tag removed — plus one trailing space each, so
-    /// removing a tag from mid-line doesn't leave a double space.
-    func removingSelectedTags(from text: String) -> String {
-        selectedTags.reduce(text) { partial, tag in
-            let pattern = Constants.tagBoundaryPrefix
-                + NSRegularExpression.escapedPattern(for: tag)
-                + Constants.tagBoundarySuffix
-                + Constants.trailingSpacePattern
-            return partial.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
+    /// `text` (attributed, so the caller's fonts/colors/links survive) with every
+    /// selected tag removed. Each removal also swallows one adjacent space —
+    /// trailing when present, otherwise leading — so neither a mid-line double
+    /// space nor a dangling edge space is left behind.
+    func removingSelectedTags(from text: NSAttributedString) -> NSAttributedString {
+        let result = NSMutableAttributedString(attributedString: text)
+        for tag in selectedTags {
+            guard let regex = tagRegex(for: tag) else { continue }
+            let ns = result.string as NSString
+            let matches = regex.matches(in: result.string, range: NSRange(location: 0, length: ns.length))
+            // Delete from the end so earlier ranges stay valid as we mutate.
+            for match in matches.reversed() {
+                var range = match.range
+                let after = range.location + range.length
+                if after < ns.length, ns.character(at: after) == Constants.spaceCharacter {
+                    range.length += 1                       // swallow the trailing space
+                } else if range.location > 0, ns.character(at: range.location - 1) == Constants.spaceCharacter {
+                    range.location -= 1                      // else swallow the leading space
+                    range.length += 1
+                }
+                result.deleteCharacters(in: range)
+            }
         }
+        return result
+    }
+
+    /// Plain-text convenience over the attributed `removingSelectedTags(from:)`.
+    func removingSelectedTags(from text: String) -> String {
+        removingSelectedTags(from: NSAttributedString(string: text)).string
     }
 
     /// `text` with the selected tags lifted out of their positions and grouped
     /// at the top (in selection order). The first grouping of a session pushes
     /// the body down with a blank line; later ones use a space so the new header
     /// doesn't fuse onto a previously grouped one (`#y#x`). Selection is kept.
-    func groupingSelectedTagsAtTop(of text: String) -> String {
+    func groupingSelectedTagsAtTop(of text: NSAttributedString) -> NSAttributedString {
         guard !selectedTags.isEmpty else { return text }
         let body = removingSelectedTags(from: text)
+
+        // Rebuild the `#tag #tag` header from each tag's original attributed run,
+        // so a lifted tag keeps the styling it had in place.
+        let header = NSMutableAttributedString()
+        for tag in selectedTags {
+            if header.length > 0 { header.append(NSAttributedString(string: Constants.laterGroupSeparator)) }
+            header.append(attributedToken(for: tag, in: text))
+        }
+
         let separator = hasGrouped ? Constants.laterGroupSeparator : Constants.firstGroupSeparator
         hasGrouped = true
-        return hashtagList + separator + body
+        let result = NSMutableAttributedString(attributedString: header)
+        result.append(NSAttributedString(string: separator))
+        result.append(body)
+        return result
+    }
+
+    /// Plain-text convenience over the attributed `groupingSelectedTagsAtTop(of:)`.
+    func groupingSelectedTagsAtTop(of text: String) -> String {
+        groupingSelectedTagsAtTop(of: NSAttributedString(string: text)).string
     }
 
     /// `text` with invalid hashtags and duplicate hashtags removed (keeping the
     /// first occurrence of each, compared case-insensitively). A hashtag is
     /// valid when `#` is followed by a letter, digit, or underscore.
-    func cleanedText(_ text: String) -> String {
-        let ns = text as NSString
-        guard let regex = try? NSRegularExpression(pattern: Constants.tokenPattern) else { return text }
+    func cleanedText(_ text: NSAttributedString) -> NSAttributedString {
+        let source = text.string
+        let ns = source as NSString
+        guard let regex = tokenRegex else { return text }
 
         var seen = Set<String>()
         var rangesToRemove: [NSRange] = []
-        regex.enumerateMatches(in: text, range: NSRange(location: 0, length: ns.length)) { match, _, _ in
+        regex.enumerateMatches(in: source, range: NSRange(location: 0, length: ns.length)) { match, _, _ in
             guard let match else { return }
             let word = ns.substring(with: match.range).dropFirst()
             let isValid = word.unicodeScalars.first.map {
@@ -158,9 +197,14 @@ final class TagSelectionViewModel {
             rangesToRemove.append(range)
         }
 
-        let result = NSMutableString(string: text)
+        let result = NSMutableAttributedString(attributedString: text)
         for range in rangesToRemove.reversed() { result.deleteCharacters(in: range) }
-        return result as String
+        return result
+    }
+
+    /// Plain-text convenience over the attributed `cleanedText(_:)`.
+    func cleanedText(_ text: String) -> String {
+        cleanedText(NSAttributedString(string: text)).string
     }
 
     // MARK: - Helpers
@@ -179,5 +223,17 @@ final class TagSelectionViewModel {
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
         regexCache[tag] = regex
         return regex
+    }
+
+    /// The attributed `#tag` run as it appears in `text` (first occurrence), so a
+    /// lifted tag keeps its original styling. Falls back to a plain `#tag` when
+    /// the tag isn't present in the text (e.g. selected programmatically).
+    private func attributedToken(for tag: String, in text: NSAttributedString) -> NSAttributedString {
+        let source = text.string
+        if let regex = tagRegex(for: tag),
+           let match = regex.firstMatch(in: source, range: NSRange(location: 0, length: (source as NSString).length)) {
+            return text.attributedSubstring(from: match.range)
+        }
+        return NSAttributedString(string: Constants.hashPrefix + tag)
     }
 }

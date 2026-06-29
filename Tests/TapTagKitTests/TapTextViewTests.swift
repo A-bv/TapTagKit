@@ -342,6 +342,25 @@ final class TapTextViewTests: XCTestCase {
         XCTAssertTrue(textView.text.contains("#sea"))
     }
 
+    func testDelete_preservesCallerSuppliedAttributesOnRemainingText() {
+        let textView = TapTextView()
+        let styled = NSMutableAttributedString(string: "#sun shines")
+        styled.addAttribute(.link, value: "https://example.com",
+                            range: NSRange(location: 5, length: 6)) // "shines"
+        textView.attributedText = styled
+        textView.processTappedWord(tappedWord: "sun")
+
+        textView.deleteSelectedTags()
+
+        XCTAssertEqual(textView.text, "shines")
+        var foundLink = false
+        textView.attributedText.enumerateAttribute(
+            .link, in: NSRange(location: 0, length: textView.attributedText.length)) { value, _, _ in
+            if value != nil { foundLink = true }
+        }
+        XCTAssertTrue(foundLink, "Deleting a tag must keep the surviving text's attributes")
+    }
+
     // MARK: - Helpers
 
     private func highlightRanges(in attributed: NSAttributedString, color: UIColor) -> [NSRange] {

@@ -52,6 +52,47 @@ final class TagSelectionViewModelTests: XCTestCase {
         XCTAssertEqual(result, "and #sea today")
     }
 
+    func testRemovingSelectedTags_atEndDropsTheLeadingSpaceToo() {
+        let vm = TagSelectionViewModel()
+        _ = vm.select("sun")
+
+        // No trailing space to swallow, so the leading one goes instead —
+        // no dangling space at the end of the line/string.
+        XCTAssertEqual(vm.removingSelectedTags(from: "hello #sun"), "hello")
+        XCTAssertEqual(vm.removingSelectedTags(from: "hello #sun\nbye"), "hello\nbye")
+    }
+
+    func testRemovingSelectedTags_preservesSurroundingAttributes() {
+        let vm = TagSelectionViewModel()
+        _ = vm.select("sun")
+
+        let key = NSAttributedString.Key("ttk.test")
+        let styled = NSMutableAttributedString(string: "#sun shines bright")
+        styled.addAttribute(key, value: "kept", range: (styled.string as NSString).range(of: "shines"))
+
+        let result = vm.removingSelectedTags(from: styled)
+
+        XCTAssertEqual(result.string, "shines bright")
+        let attribute = result.attribute(key, at: 0, effectiveRange: nil) as? String
+        XCTAssertEqual(attribute, "kept", "Removing a tag must not discard surrounding attributes")
+    }
+
+    func testGroupingSelectedTagsAtTop_preservesLiftedTagAttributes() {
+        let vm = TagSelectionViewModel()
+        _ = vm.select("sun")
+
+        let key = NSAttributedString.Key("ttk.test")
+        let styled = NSMutableAttributedString(string: "a #sun b")
+        styled.addAttribute(key, value: "kept", range: (styled.string as NSString).range(of: "#sun"))
+
+        let result = vm.groupingSelectedTagsAtTop(of: styled)
+
+        XCTAssertEqual(result.string, "#sun\n\na b")
+        // The lifted "#sun" now sits at the top and keeps its styling.
+        let attribute = result.attribute(key, at: 0, effectiveRange: nil) as? String
+        XCTAssertEqual(attribute, "kept", "A grouped tag must keep its original attributes")
+    }
+
     func testCleanedText_dropsInvalidAndCaseInsensitiveDuplicates() {
         let vm = TagSelectionViewModel()
 

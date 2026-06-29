@@ -3,6 +3,24 @@
 All notable changes to TapTagKit are documented here.
 This project adheres to [Semantic Versioning](https://semver.org).
 
+## [Unreleased]
+
+### Changed
+- The default haptic no longer skips when **Reduce Motion** is enabled — tactile
+  feedback isn't motion. Callers who want it gated can still inject their own
+  `TapTextViewServices`.
+
+### Fixed
+- **Edits preserve rich text:** grouping, deleting, and the start-of-session
+  clean-up now operate on the attributed text, so caller-supplied fonts, colors,
+  and links survive those actions (previously they were rebuilt as plain text).
+- **Scroll no longer jumps:** tapping a tag in a long, scrolled text view keeps
+  the scroll position instead of snapping to the top.
+- Deleting a tag at the end of a line/string no longer leaves a dangling space.
+
+### Performance
+- The constant hashtag-token regex is compiled once and reused.
+
 ## [3.2.0] — 2026-06-25
 
 ### Added

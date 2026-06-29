@@ -120,7 +120,7 @@ public class TapTextView: UITextView {
     /// callers customize (e.g. silence haptics). Defaults to the live services.
     public var services: TapTextViewServices = LiveTapTextViewServices()
     private var tapGestureRecognizer = UITapGestureRecognizer()
-    private var activateButton = UIBarButtonItem()
+    private var activateButton: UIBarButtonItem?
     /// Pasteboard used by copy/cut. Injectable so tests avoid the shared global.
     var pasteboard: UIPasteboard = .general
 
@@ -135,11 +135,13 @@ public class TapTextView: UITextView {
     /// A bar button that starts a selection session — drop it in a nav bar, or
     /// just call `beginSelection()` from any control you like.
     public func makeTapTextViewButton() -> UIBarButtonItem {
-        activateButton = UIBarButtonItem(
+        if let activateButton { return activateButton }
+        let button = UIBarButtonItem(
             image: UIImage(systemName: Constants.activateSymbol),
             style: .plain, target: self, action: #selector(beginSelection))
-        activateButton.accessibilityLabel = configuration.accessibility.selectButtonLabel
-        return activateButton
+        button.accessibilityLabel = configuration.accessibility.selectButtonLabel
+        activateButton = button
+        return button
     }
 
     /// Starts a session: removes duplicate/invalid hashtags, suspends editing,
@@ -147,6 +149,9 @@ public class TapTextView: UITextView {
     @objc public func beginSelection() {
         guard !isSelecting else { return }
         resignFirstResponder()
+        // Re-snapshot the (un-highlighted) content so a session — and the edits
+        // it can make — operate on what the user actually typed, not a stale base.
+        captureBaseText()
         if removesDuplicatesOnSelection { cleanUpHashtags() }
         setEditingSuspended(true)
         services.prepareHaptics()
@@ -178,10 +183,10 @@ public class TapTextView: UITextView {
     /// Removes duplicate and invalid hashtags from the text. Run automatically
     /// when a session starts; also callable on its own.
     public func cleanUpHashtags() {
-        let cleanedText = viewModel.cleanedText(text ?? "")
-        guard cleanedText != text else { return }
-        text = cleanedText
-        applyHighlighting()
+        let cleaned = viewModel.cleanedText(baseText)
+        guard cleaned.string != (text ?? "") else { return }
+        baseText = cleaned
+        applyHighlighting(preservingScroll: false)
         notifyTextChanged()
     }
 
@@ -189,7 +194,7 @@ public class TapTextView: UITextView {
         tapGestureRecognizer.isEnabled = suspended
         isEditable = !suspended
         isSelectable = !suspended
-        activateButton.isEnabled = !suspended
+        activateButton?.isEnabled = !suspended
     }
 
     // MARK: - Self-contained action bar
@@ -395,7 +400,12 @@ public class TapTextView: UITextView {
         baseText = attributedText ?? NSAttributedString(string: text ?? "")
     }
 
-    private func applyHighlighting() {
+    /// Re-applies the highlight overlay. Reassigning `attributedText` resets the
+    /// scroll position, so by default we restore it — otherwise tapping a tag
+    /// would yank a long, scrolled text view back to the top. Callers that just
+    /// rewrote the text (group/delete/clean-up) pass `preservingScroll: false`,
+    /// since the old offset no longer maps onto the new content.
+    private func applyHighlighting(preservingScroll: Bool = true) {
         let highlighted = NSMutableAttributedString(attributedString: baseText)
         for range in viewModel.highlightRanges(in: baseText.string) {
             highlighted.addAttributes([
@@ -403,9 +413,11 @@ public class TapTextView: UITextView {
                 .foregroundColor: configuration.selectedTagTextColor,
             ], range: range)
         }
+        let savedOffset = contentOffset
         isApplyingHighlight = true
         attributedText = highlighted
         isApplyingHighlight = false
+        if preservingScroll { contentOffset = savedOffset }
         refreshAccessibilityIfNeeded()
     }
 
@@ -426,17 +438,17 @@ public class TapTextView: UITextView {
     /// The tags stay selected (and highlighted) at their new position.
     @objc public func groupSelectedTags() {
         guard !viewModel.isEmpty else { return }
-        text = viewModel.groupingSelectedTagsAtTop(of: text ?? "")
-        applyHighlighting()
+        baseText = viewModel.groupingSelectedTagsAtTop(of: baseText)
+        applyHighlighting(preservingScroll: false)
         notifyTextChanged()
         scrollRangeToVisible(NSRange(location: 0, length: 0))
     }
 
     /// Removes every selected tag from the text.
     @objc public func deleteSelectedTags() {
-        text = viewModel.removingSelectedTags(from: text ?? "")
+        baseText = viewModel.removingSelectedTags(from: baseText)
         viewModel.clear()
-        applyHighlighting()
+        applyHighlighting(preservingScroll: false)
         notifyTextChanged()
     }
 }

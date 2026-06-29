@@ -15,8 +15,7 @@ public protocol TapTextViewServices: AnyObject {
     func announce(_ message: String)
 }
 
-/// Production services: the Taptic Engine and VoiceOver. Honors Reduce Motion
-/// by skipping the haptic.
+/// Production services: the Taptic Engine and VoiceOver.
 public final class LiveTapTextViewServices: TapTextViewServices {
     private let feedback = UIImpactFeedbackGenerator(style: .rigid)
 
@@ -27,7 +26,6 @@ public final class LiveTapTextViewServices: TapTextViewServices {
     }
 
     public func playSelectionHaptic() {
-        guard !UIAccessibility.isReduceMotionEnabled else { return }
         feedback.impactOccurred()
         feedback.prepare()   // keep the Taptic Engine warm for the next tap
     }
