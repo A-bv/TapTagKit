@@ -3,7 +3,7 @@
 All notable changes to TapTagKit are documented here.
 This project adheres to [Semantic Versioning](https://semver.org).
 
-## [Unreleased]
+## [3.3.0] — 2026-06-29
 
 ### Changed
 - The default haptic no longer skips when **Reduce Motion** is enabled — tactile
