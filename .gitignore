@@ -2,3 +2,8 @@
 .build/
 xcuserdata/
 .swiftpm/
+
+# Finder-style duplicates (e.g. "Foo 2.swift") — never meant to be committed
+* [0-9].*
+* copy.*
+* copy [0-9].*
