@@ -31,6 +31,16 @@ public final class LiveTapTextViewServices: TapTextViewServices {
     }
 
     public func announce(_ message: String) {
-        UIAccessibility.post(notification: .announcement, argument: message)
+        // High priority so a quick run of tag toggles doesn't drop announcements
+        // (a default-priority one is discarded if another arrives mid-utterance).
+        if #available(iOS 17.0, *) {
+            let announcement = NSAttributedString(
+                string: message,
+                attributes: [.accessibilitySpeechAnnouncementPriority: UIAccessibilityPriority.high]
+            )
+            UIAccessibility.post(notification: .announcement, argument: announcement)
+        } else {
+            UIAccessibility.post(notification: .announcement, argument: message)
+        }
     }
 }

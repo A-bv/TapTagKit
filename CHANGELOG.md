@@ -3,6 +3,12 @@
 All notable changes to TapTagKit are documented here.
 This project adheres to [Semantic Versioning](https://semver.org).
 
+## [Unreleased]
+
+### Changed
+- Selection-change VoiceOver announcements post at high priority on iOS 17+, so
+  a quick run of tag toggles no longer drops announcements mid-utterance.
+
 ## [3.3.0] — 2026-06-29
 
 ### Changed
