@@ -14,8 +14,7 @@ private final class PreviewViewController: UIViewController {
 
         textView.font = .preferredFont(forTextStyle: .body)
         // Seeded with duplicates (#Swift, a second #coding) and an invalid "#!".
-        // beginSelection() runs cleanUpHashtags() on load, so the canvas renders
-        // them already removed — a live proof of the auto clean-up.
+        // cleanUpHashtags() below removes them, so the canvas renders them gone.
         textView.text = """
         #swift #swiftui #iosdev #Swift #xcode
         #wwdc #coding #apps #! #coding #developer
@@ -58,7 +57,9 @@ private final class PreviewViewController: UIViewController {
             hint.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -20),
         ])
 
-        // Open a session so the self-contained bar shows, with a few tags lit up.
+        // Tidy the seeded duplicates/invalid tags, then open a session so the
+        // self-contained bar shows, with a few tags lit up.
+        tapTextView.cleanUpHashtags()
         tapTextView.beginSelection()
         ["swift", "iosdev", "coding"].forEach(tapTextView.selectTag)
     }

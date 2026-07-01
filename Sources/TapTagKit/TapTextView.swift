@@ -83,9 +83,6 @@ public class TapTextView: UITextView {
     }
     public weak var tagDelegate: TapTextViewDelegate?
 
-    /// Removes duplicate/invalid hashtags automatically when a session starts.
-    public var removesDuplicatesOnSelection = true
-
     /// The tag words currently selected (without the `#` prefix).
     public var selectedTags: Set<String> { Set(viewModel.selectedTags) }
     /// The selected tag words in the order they were selected.
@@ -145,15 +142,15 @@ public class TapTextView: UITextView {
         return button
     }
 
-    /// Starts a session: removes duplicate/invalid hashtags, suspends editing,
-    /// and shows the action bar.
+    /// Starts a session: suspends editing and shows the action bar. Starting a
+    /// session never edits the text; call ``cleanUpHashtags()`` first if you want
+    /// duplicate and invalid tags removed.
     @objc public func beginSelection() {
         guard !isSelecting else { return }
         resignFirstResponder()
-        // Re-snapshot the (un-highlighted) content so a session — and the edits
-        // it can make — operate on what the user actually typed, not a stale base.
+        // Re-snapshot the (un-highlighted) content so a session, and the edits
+        // it can make, operate on what the user actually typed, not a stale base.
         captureBaseText()
-        if removesDuplicatesOnSelection { cleanUpHashtags() }
         setEditingSuspended(true)
         services.prepareHaptics()
         accessibilityHint = configuration.accessibility.selectionHint
@@ -181,8 +178,8 @@ public class TapTextView: UITextView {
         UIAccessibility.post(notification: .screenChanged, argument: nil)
     }
 
-    /// Removes duplicate and invalid hashtags from the text. Run automatically
-    /// when a session starts; also callable on its own.
+    /// Removes duplicate and invalid hashtags from the text. Call it whenever you
+    /// want to tidy the tags, for example before starting a selection session.
     public func cleanUpHashtags() {
         let cleaned = viewModel.cleanedText(baseText)
         guard cleaned.string != (text ?? "") else { return }

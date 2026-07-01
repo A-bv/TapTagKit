@@ -5,6 +5,13 @@ This project adheres to [Semantic Versioning](https://semver.org).
 
 ## [Unreleased]
 
+### Changed
+- **Clean-up is no longer automatic (breaking).** `beginSelection()` no longer
+  removes duplicate or invalid hashtags, so entering selection mode never
+  rewrites the text. Call `cleanUpHashtags()` explicitly when you want it. The
+  `removesDuplicatesOnSelection` property and the matching `TapTagView`
+  initializer parameter are removed.
+
 ## [4.0.0] — 2026-07-01
 
 A major release. Two changes are breaking for consumers: the minimum toolchain

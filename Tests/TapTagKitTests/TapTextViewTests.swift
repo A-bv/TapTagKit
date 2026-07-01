@@ -64,24 +64,14 @@ final class TapTextViewTests: XCTestCase {
         XCTAssertTrue(refreshed.first?.accessibilityTraits.contains(.selected) == true)
     }
 
-    func testBeginSelection_removesDuplicatesAutomatically() {
+    func testBeginSelection_doesNotMutateText() {
         let textView = TapTextView()
-        textView.text = "#swift #swift #ios #IOS #swiftui"
+        textView.text = "#swift #swift #ios #IOS #! #swiftui"
 
         textView.beginSelection()
 
-        // Exact and case-insensitive duplicates gone, first occurrence kept.
-        XCTAssertEqual(textView.text, "#swift #ios #swiftui")
-    }
-
-    func testBeginSelection_respectsRemovesDuplicatesToggle() {
-        let textView = TapTextView()
-        textView.removesDuplicatesOnSelection = false
-        textView.text = "#swift #swift"
-
-        textView.beginSelection()
-
-        XCTAssertEqual(textView.text, "#swift #swift")
+        // Starting a session must not edit the text; clean-up is explicit now.
+        XCTAssertEqual(textView.text, "#swift #swift #ios #IOS #! #swiftui")
     }
 
     func testActionBar_hostsItsControllerInTheVCTreeDuringSession() {

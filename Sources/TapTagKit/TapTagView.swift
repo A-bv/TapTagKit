@@ -11,18 +11,15 @@ public struct TapTagView: UIViewRepresentable {
     @Binding private var isSelecting: Bool
 
     private let configuration: TapTextView.Configuration
-    private let removesDuplicatesOnSelection: Bool
 
     public init(
         text: Binding<String>,
         isSelecting: Binding<Bool>,
-        configuration: TapTextView.Configuration = .init(),
-        removesDuplicatesOnSelection: Bool = true
+        configuration: TapTextView.Configuration = .init()
     ) {
         _text = text
         _isSelecting = isSelecting
         self.configuration = configuration
-        self.removesDuplicatesOnSelection = removesDuplicatesOnSelection
     }
 
     public func makeCoordinator() -> Coordinator {
@@ -40,7 +37,6 @@ public struct TapTagView: UIViewRepresentable {
 
     public func updateUIView(_ textView: TapTextView, context: Context) {
         context.coordinator.parent = self
-        textView.removesDuplicatesOnSelection = removesDuplicatesOnSelection
 
         if textView.text != text {
             textView.text = text
