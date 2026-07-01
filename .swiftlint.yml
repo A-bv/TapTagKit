@@ -1,0 +1,48 @@
+# SwiftLint configuration for TapTagKit.
+# Rigor without fighting the codebase's deliberate style: trailing commas in
+# multiline literals (clean diffs) and terse, idiomatic short names in tight
+# scopes are kept; a few high-value opt-in rules are turned on.
+
+included:
+  - Sources
+  - Tests
+
+disabled_rules:
+  - trailing_comma        # trailing commas in multiline literals keep diffs clean
+
+opt_in_rules:
+  - empty_count
+  - first_where
+  - last_where
+  - contains_over_first_not_nil
+  - redundant_nil_coalescing
+  - closure_spacing
+  - explicit_init
+  - unneeded_parentheses_in_closure_argument
+
+identifier_name:
+  min_length:
+    warning: 2            # ns, vm, vc read fine in their scopes
+  allowed_symbols: ["_"]
+
+type_name:
+  min_length:
+    warning: 1            # the terse `L` localization namespace is intentional
+
+# Configuration.Accessibility is intentionally nested two levels deep.
+nesting:
+  type_level:
+    warning: 2
+
+# Size thresholds for a small, deliberately cohesive library.
+file_length:
+  warning: 500
+  error: 800
+
+type_body_length:
+  warning: 350
+  error: 500
+
+function_body_length:
+  warning: 80
+  error: 120

@@ -33,6 +33,16 @@ jobs:
             -destination '${{ matrix.destination }}' \
             CODE_SIGNING_ALLOWED=NO
 
+  lint:
+    name: Lint
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      # SwiftLint ships pre-installed on GitHub's macOS runner images.
+      - name: SwiftLint
+        run: swiftlint lint --strict
+
   docs:
     name: Build documentation
     runs-on: macos-15
