@@ -30,25 +30,60 @@ or declare it in `Package.swift`:
 
 ## Usage
 
+You get a text view that edits normally. A **selection session** is the mode where editing pauses, a toolbar appears, and you tap hashtags to act on them. Below is a complete screen in each framework.
+
 ### UIKit
 
+`TapTextView` is a `UITextView` subclass, so you add it and set its text like any text view. `makeTapTextViewButton()` gives you a button that turns the session on and off.
+
 ```swift
-let textView = TapTextView()                       // behaves like any UITextView
-navigationItem.rightBarButtonItem = textView.makeTapTextViewButton()
+import UIKit
+import TapTagKit
+
+final class EditorViewController: UIViewController {
+    private let textView = TapTextView()
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        textView.text = "Try #swift and #swiftui"
+        textView.frame = view.bounds
+        textView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        view.addSubview(textView)
+
+        // Put the selection button in the navigation bar.
+        navigationItem.rightBarButtonItem = textView.makeTapTextViewButton()
+    }
+}
 ```
 
-The bar button opens a selection session, and the toolbar shows and hides itself. If you'd rather drive it yourself, call `beginSelection()` and `endSelection()` from any control.
+Tap the button to start a session: editing pauses and the toolbar appears. Tap hashtags to select them, use the toolbar, then tap Done to finish. If you have no navigation bar, call `textView.beginSelection()` and `textView.endSelection()` from any button of your own.
 
 ### SwiftUI
 
-```swift
-@State private var text = "Try #swift and #swiftui"
-@State private var isSelecting = false
+`TapTagView` is driven by two values you own. `text` is the string being edited. `isSelecting` turns the session on or off: set it to `true` and the toolbar appears, set it back to `false` to finish. The `$` in front of each hands them to the view so it can update them for you.
 
-TapTagView(text: $text, isSelecting: $isSelecting)
+```swift
+import SwiftUI
+import TapTagKit
+
+struct EditorView: View {
+    @State private var text = "Try #swift and #swiftui"
+    @State private var isSelecting = false
+
+    var body: some View {
+        VStack {
+            TapTagView(text: $text, isSelecting: $isSelecting)
+
+            Button(isSelecting ? "Done" : "Select hashtags") {
+                isSelecting.toggle()
+            }
+        }
+    }
+}
 ```
 
-`TapTagView` takes a text binding and reflects the session through `isSelecting`; toggle `isSelecting` from a button to begin or end selection.
+Tapping the button flips `isSelecting`, which starts or ends the session. While it is on, tap hashtags to select them and use the toolbar; `text` always holds the current text.
 
 ## Customization
 
