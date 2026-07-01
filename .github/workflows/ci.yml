@@ -13,14 +13,8 @@ jobs:
   build-test:
     name: Build & Test
     runs-on: macos-15
-    strategy:
-      fail-fast: false
-      matrix:
-        destination:
-          - 'platform=iOS Simulator,name=iPhone 16,OS=latest'
-          - 'platform=iOS Simulator,name=iPhone SE (3rd generation),OS=latest'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Show Xcode version
         run: xcodebuild -version
@@ -28,18 +22,23 @@ jobs:
       - name: Build and test
         run: |
           set -o pipefail
+          # Resolve an available iPhone simulator by UDID so CI doesn't break
+          # when the runner image's device roster changes.
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; rows=[x for rt,l in d.items() if 'iOS' in rt for x in l if x['name'].startswith('iPhone')]; print(sorted(rows, key=lambda x: x['name'])[-1]['udid'])")
           xcodebuild test \
             -scheme TapTagKit \
-            -destination '${{ matrix.destination }}' \
+            -destination "id=$DEVICE" \
             CODE_SIGNING_ALLOWED=NO
 
   lint:
     name: Lint
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      # SwiftLint ships pre-installed on GitHub's macOS runner images.
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
       - name: SwiftLint
         run: swiftlint lint --strict
 
@@ -47,15 +46,16 @@ jobs:
     name: Build documentation
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Fail the build on broken DocC references (they are warnings otherwise),
       # so documentation can't rot unnoticed.
       - name: Build DocC
         run: |
           set -o pipefail
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; rows=[x for rt,l in d.items() if 'iOS' in rt for x in l if x['name'].startswith('iPhone')]; print(sorted(rows, key=lambda x: x['name'])[-1]['udid'])")
           xcodebuild docbuild \
             -scheme TapTagKit \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -destination "id=$DEVICE" \
             OTHER_DOCC_FLAGS='--warnings-as-errors' \
             CODE_SIGNING_ALLOWED=NO
