@@ -1,6 +1,6 @@
 # TapTagKit
 
-Hashtags you can actually tap. A `UITextView` subclass: use it as a normal text view, and it also detects hashtags and shows a toolbar — on demand — to act on them.
+Hashtags you can actually tap. `TapTextView` is a `UITextView` subclass — an ordinary text view that also recognizes the hashtags inside it and, on demand, brings up a toolbar for acting on them.
 
 [![CI](https://github.com/A-bv/TapTagKit/actions/workflows/ci.yml/badge.svg)](https://github.com/A-bv/TapTagKit/actions/workflows/ci.yml)
 ![Swift 6.0](https://img.shields.io/badge/Swift-6.0-F05138?logo=swift&logoColor=white)
@@ -8,15 +8,15 @@ Hashtags you can actually tap. A `UITextView` subclass: use it as a normal text 
 ![SPM](https://img.shields.io/badge/SPM-compatible-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-lightgrey)
 
-Tap a hashtag to select every occurrence of it, then from the toolbar:
+Tap any hashtag to select every occurrence of it at once, then, from the toolbar:
 
 - **Copy** the selected tags
-- **Cut** them — copy, then remove from the text
+- **Cut** them — copy, then remove them from the text
 - **Group** them at the top of the text
 - **Delete** them
-- **Deselect** / clear the selection
+- **Deselect** them, or clear the whole selection
 
-The toolbar appears when a selection session starts and hides when it ends. You can also select and act on tags programmatically.
+The toolbar appears when a selection session begins and disappears when it ends. Every action is available programmatically too.
 
 <p align="center">
   <img src="Assets/demo.gif" alt="Tapping #swift selects every match, then grouping moves the tags to the top" width="380">
@@ -24,13 +24,13 @@ The toolbar appears when a selection session starts and hides when it ends. You 
 
 ## Install
 
-Swift Package Manager — add the package URL in Xcode:
+Add the package in Xcode using its URL:
 
 ```
 https://github.com/A-bv/TapTagKit
 ```
 
-or in `Package.swift`:
+or declare it in `Package.swift`:
 
 ```swift
 .package(url: "https://github.com/A-bv/TapTagKit", from: "4.0.0")
@@ -45,7 +45,7 @@ let textView = TapTextView()                       // behaves like any UITextVie
 navigationItem.rightBarButtonItem = textView.makeTapTextViewButton()
 ```
 
-The bar button starts a session; the toolbar shows and hides itself. You can also call `beginSelection()` / `endSelection()` from any control.
+The bar button opens a selection session, and the toolbar takes care of showing and hiding itself. If you'd rather drive it yourself, call `beginSelection()` and `endSelection()` from any control.
 
 ### SwiftUI
 
@@ -56,7 +56,7 @@ The bar button starts a session; the toolbar shows and hides itself. You can als
 TapTagView(text: $text, isSelecting: $isSelecting)
 ```
 
-Toggle `isSelecting` — e.g. from a button — to start and end a session.
+`TapTagView` mirrors its session state through the `isSelecting` binding — flip it from a button to begin or end selection.
 
 ## Configuration
 
@@ -67,29 +67,29 @@ config.accessibility.copyLabel = "Copier"
 textView.configuration = config
 ```
 
-- **Colors** — `tagHighlightColor`, `selectedTagTextColor`.
-- **Localization** — labels, captions, and VoiceOver strings ship in English and French; override any through `Configuration`.
-- **Clean-up** — remove duplicate and invalid hashtags when a session starts (`removesDuplicatesOnSelection`, on by default).
+- **Colors** — the highlight and selected-text colors (`tagHighlightColor`, `selectedTagTextColor`).
+- **Localization** — labels, captions, and VoiceOver strings ship in English and French, and any of them can be overridden.
+- **Clean-up** — duplicate and invalid hashtags are tidied away when a session begins; toggle it with `removesDuplicatesOnSelection` (on by default).
 
 ## Behavior
 
-- **Matching** — case-insensitive and whole-token: `#Sun` and `#sun` are the same tag, `#c++` matches, and `#sunny` doesn't when you tap `#sun`.
-- **Attributed text preserved** — highlighting, grouping, and deleting keep caller fonts, colors, and links; only the tags move or disappear.
-- **Scroll kept** — tapping a tag in a long text view doesn't jump the scroll position.
+- **Matching is case-insensitive and whole-token.** `#Sun` and `#sun` are the same tag, `#c++` matches in full, and tapping `#sun` leaves `#sunny` untouched.
+- **Your text keeps its styling.** Highlighting, grouping, and deleting all work on the attributed string, so fonts, colors, and links survive — only the tags themselves move or disappear.
+- **The scroll position holds.** Tapping a tag in a long, scrolled text view no longer snaps back to the top.
 
 ## Accessibility
 
-- Each hashtag is its own VoiceOver element; activating it toggles the tag, like a tap.
+- Each hashtag is exposed as its own VoiceOver element; activating it toggles that tag, exactly like a tap.
 - VoiceOver announces every selection and deselection.
-- All spoken strings are localizable through `Configuration.accessibility`.
+- Every spoken string can be localized through `Configuration.accessibility`.
 
 ## Implementation
 
-- **MVVM** — all tag and text logic lives in a UIKit-free `TagSelectionViewModel`, unit-tested without a simulated view.
-- **Injected side effects** — haptics and VoiceOver announcements sit behind `TapTextViewServices`, swappable in tests or by callers.
-- **Self-contained toolbar** — a SwiftUI action bar hosted in the view-controller tree via `UIHostingController`.
-- **Safe matching** — user text is escaped before it reaches a regex, so metacharacter tags like `#c++` can't break selection.
-- **Swift 6** language mode with complete strict concurrency, and zero third-party dependencies.
+- **MVVM.** All tag and text logic lives in a UIKit-free `TagSelectionViewModel`, so the rules are unit-tested without ever instantiating a view.
+- **Injected side effects.** Haptics and VoiceOver announcements sit behind the `TapTextViewServices` protocol, ready to be faked in tests or replaced by callers.
+- **A self-contained toolbar.** The action bar is a SwiftUI view hosted in the view-controller tree through `UIHostingController`, so it can present its own confirmation dialogs.
+- **Defensive matching.** Tag text is escaped before it reaches a regular expression, so hashtags containing regex metacharacters (like `#c++`) can never break selection.
+- **Modern Swift.** Written in the Swift 6 language mode under complete strict concurrency, with no third-party dependencies.
 
 ## License
 
