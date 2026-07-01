@@ -26,6 +26,26 @@ final class TagSelectionViewModelTests: XCTestCase {
         XCTAssertTrue(vm.isEmpty)
     }
 
+    func testSelection_isCaseInsensitive() {
+        let vm = TagSelectionViewModel()
+
+        // Selecting one case treats the other as the same tag.
+        XCTAssertEqual(vm.toggle("Sun").isSelected, true)
+        XCTAssertNil(vm.select("sun"), "same tag in another case is already selected")
+        XCTAssertEqual(vm.toggle("sun").isSelected, false, "toggling the other case deselects it")
+        XCTAssertTrue(vm.isEmpty)
+    }
+
+    func testHighlightAndRemoval_matchAcrossCase() {
+        let vm = TagSelectionViewModel()
+        _ = vm.select("sun")
+
+        // A selected "sun" highlights every case variant as a whole token.
+        XCTAssertEqual(vm.highlightRanges(in: "#sun #Sun #SUN #sunny").count, 3)
+        // ...and removal drops them all.
+        XCTAssertEqual(vm.removingSelectedTags(from: "#Sun and #sun today"), "and today")
+    }
+
     func testHashtagWord_readsWholeTokens() {
         let vm = TagSelectionViewModel()
         let text = "#c++ and #sea"

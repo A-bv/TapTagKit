@@ -12,6 +12,10 @@ This project adheres to [Semantic Versioning](https://semver.org).
   strict concurrency; the UI-facing delegate and services protocols are annotated
   `@MainActor`. Building the package requires the Swift 6.0 toolchain (Xcode 16+);
   the iOS 15 deployment target is unchanged.
+- **Tag matching is now case-insensitive everywhere.** Selecting and highlighting
+  treat `#Sun` and `#sun` as the same tag, matching the case-insensitive dedupe
+  the start-of-session clean-up already used. Previously selection/highlight were
+  case-sensitive, which only diverged when clean-up was disabled.
 
 ### Fixed
 - **The action bar now tracks its presenting container.** It is hosted on the

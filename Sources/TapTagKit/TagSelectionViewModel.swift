@@ -46,10 +46,11 @@ final class TagSelectionViewModel {
     // MARK: - Intents
 
     /// Toggles `tag`, returning the normalized word and its new state.
+    /// Matching is case-insensitive, so `#Sun` and `#sun` are the same tag.
     @discardableResult
     func toggle(_ tag: String) -> (word: String, isSelected: Bool) {
         let word = normalized(tag)
-        if let index = selectedTags.firstIndex(of: word) {
+        if let index = indexOfSelectedTag(word) {
             selectedTags.remove(at: index)
             return (word, false)
         }
@@ -60,14 +61,14 @@ final class TagSelectionViewModel {
     /// Adds `tag` if not already selected. Returns the word, or nil for a no-op.
     func select(_ tag: String) -> String? {
         let word = normalized(tag)
-        guard !word.isEmpty, !selectedTags.contains(word) else { return nil }
+        guard !word.isEmpty, indexOfSelectedTag(word) == nil else { return nil }
         selectedTags.append(word)
         return word
     }
 
     /// Removes `tag`. Returns the word, or nil if it wasn't selected.
     func deselect(_ tag: String) -> String? {
-        guard let index = selectedTags.firstIndex(of: normalized(tag)) else { return nil }
+        guard let index = indexOfSelectedTag(normalized(tag)) else { return nil }
         return selectedTags.remove(at: index)
     }
 
@@ -213,15 +214,25 @@ final class TagSelectionViewModel {
         tag.hasPrefix(Constants.hashPrefix) ? String(tag.dropFirst()) : tag
     }
 
+    /// The index of a selected tag matching `word` case-insensitively, or nil.
+    private func indexOfSelectedTag(_ word: String) -> Int? {
+        selectedTags.firstIndex { $0.caseInsensitiveCompare(word) == .orderedSame }
+    }
+
     /// Matches `#tag` only as a whole whitespace-delimited token, so `#sun`
     /// never matches inside `#sunny` or `a#sun`, while `#c++` still matches.
+    /// Case-insensitive, so a selected `#sun` also highlights `#Sun` — the same
+    /// case-insensitivity the start-of-session clean-up uses to dedupe.
     private func tagRegex(for tag: String) -> NSRegularExpression? {
-        if let cached = regexCache[tag] { return cached }
+        // Case-insensitive matching, so cache by a case-folded key: `#Sun` and
+        // `#sun` share one compiled regex.
+        let key = tag.lowercased()
+        if let cached = regexCache[key] { return cached }
         let pattern = Constants.tagBoundaryPrefix
             + NSRegularExpression.escapedPattern(for: tag)
             + Constants.tagBoundarySuffix
-        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
-        regexCache[tag] = regex
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return nil }
+        regexCache[key] = regex
         return regex
     }
 

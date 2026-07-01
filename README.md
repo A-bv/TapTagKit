@@ -59,7 +59,7 @@ config.accessibility.copyLabel = "Copier"   // localize any string
 textView.configuration = config
 ```
 
-Labels, captions, and VoiceOver strings ship localized in **English and French** — override any of them through `Configuration`. Duplicate and invalid hashtags are tidied when a session starts (`removesDuplicatesOnSelection`).
+Labels, captions, and VoiceOver strings ship localized in **English and French** — override any of them through `Configuration`. Duplicate and invalid hashtags are tidied when a session starts (`removesDuplicatesOnSelection`). Tag matching is case-insensitive, so `#Sun` and `#sun` count as the same tag.
 
 ## Accessibility
 
