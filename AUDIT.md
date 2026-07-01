@@ -1,5 +1,48 @@
 # TapTagKit — Portfolio-Grade Audit
 
+> ## Second pass — 2026-07-01 (post-4.0.0)
+>
+> Re-audited after the F1–F8 fixes and the 4.0.0 release. Baseline re-verified:
+> clean tree, **46 tests pass** (2 skipped), `swiftlint --strict` clean, DocC
+> builds with `--warnings-as-errors`, CI green on all three jobs.
+>
+> **Verdict:** the substantive gaps are closed. What remains is one surface-level
+> completeness item and a short list of taste/positioning notes. Checked and
+> deliberately *not* flagged (no manufactured findings): the action-bar hosting
+> has no retain cycle (handlers are `[weak self]`; `willMove(toWindow:nil)` tears
+> it down); the Swift 6 concurrency is clean (the coordinator's `main.async`
+> captures weakly and builds under complete checking); the tag-removal
+> space-swallow handles space and newline adjacency correctly.
+>
+> ### F9 — DocC catalog curates only part of the public API
+> **FOLLOW-UP** · [L2 · Correct→Showcase] · **Observed** ·
+> `Sources/TapTagKit/TapTagKit.docc/TapTagKit.md`
+>
+> The Topics list omits the entire injectable-services API
+> (``TapTextViewServices``, ``LiveTapTextViewServices``, ``TapTextView/services``)
+> plus ``TapTextView/cleanUpHashtags()``, ``TapTextView/removesDuplicatesOnSelection``,
+> and ``TapTextView/selectedTags``. These are public but uncurated — orphan pages,
+> not part of the documented surface. _Fix direction:_ add topic groups for
+> clean-up and for side-effect injection, and list the missing selection symbol;
+> verify with `docbuild --warnings-as-errors`.
+>
+> ### Taste / positioning (DON'T-BLOCK — not in the fix queue)
+> - **Single platform.** iOS-only; Mac Catalyst / visionOS would widen reach.
+>   Positioning choice, not a defect.
+> - **No code-coverage measurement** in CI. Tests are strong; there's just no
+>   emitted number or badge to prove it.
+> - **Tab-delimited tag removal** leaves a stray tab (only ASCII space is
+>   swallowed). Exotic input; not worth special-casing.
+> - Localization covers two languages (en/fr).
+>
+> **Fix queue (second pass):** F9 only. The rest is taste.
+>
+> ---
+>
+> _Original first-pass audit (all items resolved) follows._
+
+---
+
 _Staff-engineer audit. Audit only: no code was modified._
 _Date: 2026-07-01 · Branch: `main` @ `142238d` · Working tree: clean_
 

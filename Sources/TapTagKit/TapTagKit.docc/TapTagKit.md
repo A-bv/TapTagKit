@@ -37,6 +37,7 @@ highlight color and accessibility labels are injectable through
 - ``TapTextView/selectTag(_:)``
 - ``TapTextView/deselectTag(_:)``
 - ``TapTextView/clearSelection()``
+- ``TapTextView/selectedTags``
 - ``TapTextView/selectedTagsInOrder``
 - ``TapTextView/isSelecting``
 
@@ -46,3 +47,14 @@ highlight color and accessibility labels are injectable through
 - ``TapTextView/cutSelectedTags()``
 - ``TapTextView/groupSelectedTags()``
 - ``TapTextView/deleteSelectedTags()``
+
+### Cleaning up hashtags
+
+- ``TapTextView/cleanUpHashtags()``
+- ``TapTextView/removesDuplicatesOnSelection``
+
+### Customizing side effects
+
+- ``TapTextView/services``
+- ``TapTextViewServices``
+- ``LiveTapTextViewServices``
