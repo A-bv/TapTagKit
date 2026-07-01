@@ -102,6 +102,23 @@ final class TapTextViewTests: XCTestCase {
         XCTAssertTrue(host.children.isEmpty)
     }
 
+    func testActionBar_isHostedOnTheOwningViewControllerNotTheWindow() {
+        let host = UIViewController()
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 320, height: 480))
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+
+        let textView = TapTextView()
+        host.view.addSubview(textView)
+
+        textView.beginSelection()
+
+        // The bar must sit in the owning VC's view so it tracks that container
+        // (e.g. a sheet or split-view column), not pin to the window.
+        XCTAssertTrue(host.view.subviews.contains { $0 is TagActionBar })
+        XCTAssertFalse(window.subviews.contains { $0 is TagActionBar })
+    }
+
     func testActionBar_insetsTextWhileShownAndRestoresAfter() {
         let host = UIViewController()
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 320, height: 480))

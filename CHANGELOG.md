@@ -13,6 +13,12 @@ This project adheres to [Semantic Versioning](https://semver.org).
   `@MainActor`. Building the package requires the Swift 6.0 toolchain (Xcode 16+);
   the iOS 15 deployment target is unchanged.
 
+### Fixed
+- **The action bar now tracks its presenting container.** It is hosted on the
+  owning view controller's view instead of the window, so it sits correctly when
+  the text view lives in a sheet, a split-view column, or a secondary scene
+  rather than full screen.
+
 ## [3.3.0] — 2026-06-29
 
 ### Changed

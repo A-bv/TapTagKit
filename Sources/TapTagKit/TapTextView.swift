@@ -207,7 +207,13 @@ public class TapTextView: UITextView {
     private var insetsBeforeBar: (content: UIEdgeInsets, indicator: UIEdgeInsets)?
 
     private func presentActionBar() {
-        guard activeBar == nil, let host = window ?? superview else { return }
+        guard activeBar == nil else { return }
+        // Host the bar on the owning view controller's view so it tracks whatever
+        // container actually presents the text view — a sheet, a split-view column,
+        // a secondary scene — instead of pinning to the window. Falls back to the
+        // window (then superview) only when no view controller owns us.
+        let owner = owningViewController
+        guard let host = owner?.view ?? window ?? superview else { return }
         let bar = makeActionBar()
         activeBar = bar
         host.addSubview(bar)
@@ -219,7 +225,7 @@ public class TapTextView: UITextView {
         ])
         // Add the bar's SwiftUI hosting controller to the VC tree so its
         // confirmation alert can present.
-        if let owner = owningViewController { bar.attach(to: owner) }
+        if let owner { bar.attach(to: owner) }
 
         // Inset the text so the bar never covers the last line.
         insetsBeforeBar = (contentInset, verticalScrollIndicatorInsets)
