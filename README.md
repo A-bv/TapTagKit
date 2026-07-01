@@ -1,6 +1,6 @@
 # TapTagKit
 
-**Hashtags you can actually tap.** A `UITextView` subclass that turns every `#tag` into a target: tap one to light up all its twins, then act on the whole set from a toolbar.
+Hashtags you can actually tap. A `UITextView` subclass that detects hashtags and lets you act on them.
 
 [![CI](https://github.com/A-bv/TapTagKit/actions/workflows/ci.yml/badge.svg)](https://github.com/A-bv/TapTagKit/actions/workflows/ci.yml)
 ![Swift 6.0](https://img.shields.io/badge/Swift-6.0-F05138?logo=swift&logoColor=white)
@@ -8,79 +8,86 @@
 ![SPM](https://img.shields.io/badge/SPM-compatible-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-lightgrey)
 
+Tap a hashtag to select every occurrence of it, then from a toolbar:
+
+- **Copy** the selected tags
+- **Cut** them — copy, then remove from the text
+- **Group** them at the top of the text
+- **Delete** them
+- **Deselect** / clear the selection
+
+You can also select and act on tags programmatically.
+
 <p align="center">
-  <img src="Assets/demo.gif" alt="Selecting #swift highlights every match, then groups the tags to the top" width="380">
+  <img src="Assets/demo.gif" alt="Tapping #swift selects every match, then grouping moves the tags to the top" width="380">
 </p>
 
 ## Install
 
-Swift Package Manager:
+Swift Package Manager — add the package URL in Xcode:
+
+```
+https://github.com/A-bv/TapTagKit
+```
+
+or in `Package.swift`:
 
 ```swift
 .package(url: "https://github.com/A-bv/TapTagKit", from: "4.0.0")
 ```
 
-## 60-second start
+## Usage
+
+UIKit — add the button; the toolbar shows and hides itself for the session:
 
 ```swift
 let textView = TapTextView()
 navigationItem.rightBarButtonItem = textView.makeTapTextViewButton()
 ```
 
-That's the whole setup. Tapping the button starts a session; the action toolbar
-shows and hides itself — no navigation-controller wiring, no delegate dance. Or
-drive it yourself with `beginSelection()` / `endSelection()`.
+Or drive it directly with `beginSelection()` / `endSelection()`.
 
-### SwiftUI
+SwiftUI:
 
 ```swift
 @State private var text = "Try #swift and #swiftui"
 @State private var isSelecting = false
 
-var body: some View {
-    VStack {
-        TapTagView(text: $text, isSelecting: $isSelecting)
-        Button(isSelecting ? "Done" : "Select hashtags") {
-            isSelecting.toggle()
-        }
-    }
-}
+TapTagView(text: $text, isSelecting: $isSelecting)
 ```
 
-`TapTagView` is a native SwiftUI adapter backed by the same UIKit text engine.
-The text and selection-session state stay synchronized through bindings.
-
-## Customize
+## Configuration
 
 ```swift
 var config = TapTextView.Configuration()
 config.tagHighlightColor = .systemIndigo
-config.accessibility.copyLabel = "Copier"   // localize any string
+config.accessibility.copyLabel = "Copier"
 textView.configuration = config
 ```
 
-Labels, captions, and VoiceOver strings ship localized in **English and French** — override any of them through `Configuration`. Duplicate and invalid hashtags are tidied when a session starts (`removesDuplicatesOnSelection`). Tag matching is case-insensitive, so `#Sun` and `#sun` count as the same tag.
+- **Colors** — `tagHighlightColor`, `selectedTagTextColor`.
+- **Localization** — labels, captions, and VoiceOver strings ship in English and French; override any through `Configuration`.
+- **Clean-up** — duplicate and invalid hashtags are removed when a session starts (`removesDuplicatesOnSelection`).
+- **Matching** — case-insensitive: `#Sun` and `#sun` are the same tag.
 
 ## Accessibility
 
-VoiceOver support is built in, not bolted on:
+- Each hashtag is its own VoiceOver element; activating it toggles that tag, like a tap.
+- Selection changes are announced (high priority on iOS 17+, so fast toggles aren't dropped).
+- All spoken strings are localizable via `Configuration.accessibility`.
 
-- **Every hashtag is its own element.** During a session each `#tag` reads as a button; activating it (VoiceOver double-tap) toggles that tag exactly like a sighted tap.
-- **Selection changes are spoken.** Selecting or deselecting posts an announcement — at high priority on iOS 17+, so a fast run of toggles isn't dropped mid-utterance.
-- **Everything spoken is localizable** through `Configuration.accessibility`, including the announcement strings.
+## Rich text
 
-## Rich text survives every edit
+Highlighting, grouping, deleting, and clean-up operate on the attributed text, so caller fonts, colors, and links are preserved — only the tags move or disappear. Scroll position is kept when tapping a tag.
 
-Highlighting, grouping, deleting, and the start-of-session clean-up all operate on the *attributed* text, so caller-supplied fonts, colors, and links are preserved — only the tags themselves move or disappear. Tapping a tag in a long, scrolled text view also keeps the scroll position instead of snapping to the top.
+## Implementation
 
-## Under the hood
+- **MVVM** — all tag/text logic lives in a UIKit-free `TagSelectionViewModel`, unit-tested without a simulated view.
+- **Dependency injection** — haptics and VoiceOver announcements sit behind `TapTextViewServices`, swappable in tests or by callers.
+- **Self-contained toolbar** — a SwiftUI action bar hosted via `UIHostingController` in the view-controller tree.
+- **Whole-token matching** — cached, escaped regexes match `#c++` and skip `#sunny` when you tap `#sun`.
+- **Swift 6 language mode** with complete strict concurrency; **zero third-party dependencies**.
 
-Selection state and all tag/text logic live in a UIKit-free `TagSelectionViewModel` (MVVM), so the rules are unit-tested without a single simulated view. History lives in the [CHANGELOG](CHANGELOG.md).
+## License
 
-## Preview
-
-Open `Sources/TapTagKit/Previews.swift` and switch on the canvas (**Editor › Canvas**) for a live, tappable demo. The animation above is reproducible — `Scripts/record-gif.sh` renders it to `Assets/demo.gif`.
-
-## Requirements & license
-
-iOS 15 · Swift 6.0 · [MIT](LICENSE).
+MIT — see [LICENSE](LICENSE).

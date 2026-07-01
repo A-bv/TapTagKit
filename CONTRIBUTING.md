@@ -27,6 +27,10 @@ xcodebuild docbuild \
 Requires the Swift 6.0 toolchain (Xcode 16 or later). The runtime deployment
 target is iOS 15.
 
+For a live, tappable demo, open `Sources/TapTagKit/Previews.swift` and turn on
+the canvas (**Editor › Canvas**). The README animation is reproducible —
+`Scripts/record-gif.sh` renders it to `Assets/demo.gif`.
+
 ## Guidelines
 
 - **Keep the core UIKit-free.** All tag and text logic lives in
