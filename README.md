@@ -17,7 +17,7 @@
 Swift Package Manager:
 
 ```swift
-.package(url: "https://github.com/A-bv/TapTagKit", from: "3.0.0")
+.package(url: "https://github.com/A-bv/TapTagKit", from: "4.0.0")
 ```
 
 ## 60-second start

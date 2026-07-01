@@ -5,9 +5,13 @@ This project adheres to [Semantic Versioning](https://semver.org).
 
 ## [Unreleased]
 
+## [4.0.0] — 2026-07-01
+
+A major release. Two changes are breaking for consumers: the minimum toolchain
+is now Swift 6.0 (Xcode 16+), and tag matching is case-insensitive. The runtime
+deployment target remains iOS 15.
+
 ### Changed
-- Selection-change VoiceOver announcements post at high priority on iOS 17+, so
-  a quick run of tag toggles no longer drops announcements mid-utterance.
 - **Swift 6 language mode.** The package now builds under Swift 6 with complete
   strict concurrency; the UI-facing delegate and services protocols are annotated
   `@MainActor`. Building the package requires the Swift 6.0 toolchain (Xcode 16+);
@@ -16,6 +20,8 @@ This project adheres to [Semantic Versioning](https://semver.org).
   treat `#Sun` and `#sun` as the same tag, matching the case-insensitive dedupe
   the start-of-session clean-up already used. Previously selection/highlight were
   case-sensitive, which only diverged when clean-up was disabled.
+- Selection-change VoiceOver announcements post at high priority on iOS 17+, so
+  a quick run of tag toggles no longer drops announcements mid-utterance.
 
 ### Fixed
 - **The action bar now tracks its presenting container.** It is hosted on the
