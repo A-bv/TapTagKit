@@ -51,6 +51,7 @@ highlight color and accessibility labels are injectable through
 ### Cleaning up hashtags
 
 - ``TapTextView/cleanUpHashtags()``
+- ``TapTextView/cleanedHashtags(in:)``
 
 ### Customizing side effects
 

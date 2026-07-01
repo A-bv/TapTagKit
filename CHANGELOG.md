@@ -5,6 +5,11 @@ This project adheres to [Semantic Versioning](https://semver.org).
 
 ## [Unreleased]
 
+### Added
+- `TapTextView.cleanedHashtags(in:)`, a static helper that returns a string with
+  duplicate and invalid hashtags removed, so SwiftUI callers can tidy a bound
+  value on demand.
+
 ### Changed
 - **Clean-up is no longer automatic (breaking).** `beginSelection()` no longer
   removes duplicate or invalid hashtags, so entering selection mode never

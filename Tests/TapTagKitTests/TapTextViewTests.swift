@@ -199,6 +199,11 @@ final class TapTextViewTests: XCTestCase {
         XCTAssertFalse(isSelecting)
     }
 
+    func testCleanedHashtags_staticHelperRemovesDuplicatesAndInvalid() {
+        // The string helper SwiftUI callers use to tidy a bound value on demand.
+        XCTAssertEqual(TapTextView.cleanedHashtags(in: "#sun #Sun #sea #! end"), "#sun #sea end")
+    }
+
     func testCleanUpHashtags_removesDuplicates() {
         let textView = TapTextView()
         textView.text = "#sun #sun #sea"

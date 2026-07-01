@@ -72,7 +72,7 @@ config.accessibility.copyLabel = "Copier"
 ## Behavior
 
 - **Matching is case-insensitive and whole-token.** `#Sun` and `#sun` are the same tag, `#c++` matches in full, and tapping `#sun` leaves `#sunny` untouched.
-- **Clean-up is on demand.** Call `cleanUpHashtags()` to remove duplicate and invalid hashtags. It never runs on its own, so entering selection mode never rewrites your text.
+- **Clean-up is on demand.** Call `cleanUpHashtags()` to remove duplicate and invalid hashtags. It never runs on its own, so entering selection mode never rewrites your text. In SwiftUI, tidy a bound string with `TapTextView.cleanedHashtags(in:)`.
 - **Your text keeps its styling.** Highlighting, grouping, and deleting all work on the attributed string, so fonts, colors, and links survive; only the tags themselves move or disappear.
 - **The scroll position holds.** Tapping a tag in a long, scrolled text view does not snap back to the top.
 

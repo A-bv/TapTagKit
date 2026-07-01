@@ -188,6 +188,13 @@ public class TapTextView: UITextView {
         notifyTextChanged()
     }
 
+    /// Returns `text` with duplicate and invalid hashtags removed, using the same
+    /// rules as ``cleanUpHashtags()``. Handy in SwiftUI, where you can tidy a
+    /// bound string on demand: `text = TapTextView.cleanedHashtags(in: text)`.
+    nonisolated public static func cleanedHashtags(in text: String) -> String {
+        TagSelectionViewModel().cleanedText(text)
+    }
+
     private func setEditingSuspended(_ suspended: Bool) {
         tapGestureRecognizer.isEnabled = suspended
         isEditable = !suspended
