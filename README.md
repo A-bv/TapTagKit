@@ -1,6 +1,6 @@
 # TapTagKit
 
-Hashtags you can actually tap. `TapTextView` is a `UITextView` subclass — an ordinary text view that also recognizes the hashtags inside it and, on demand, brings up a toolbar for acting on them.
+Hashtags you can actually tap. `TapTextView` is a `UITextView` subclass: an ordinary text view that also recognizes the hashtags inside it and, on demand, brings up a toolbar for acting on them.
 
 [![CI](https://github.com/A-bv/TapTagKit/actions/workflows/ci.yml/badge.svg)](https://github.com/A-bv/TapTagKit/actions/workflows/ci.yml)
 ![Swift 6.0](https://img.shields.io/badge/Swift-6.0-F05138?logo=swift&logoColor=white)
@@ -11,7 +11,7 @@ Hashtags you can actually tap. `TapTextView` is a `UITextView` subclass — an o
 Tap any hashtag to select every occurrence of it at once, then, from the toolbar:
 
 - **Copy** the selected tags
-- **Cut** them — copy, then remove them from the text
+- **Cut** them: copy, then remove them from the text
 - **Group** them at the top of the text
 - **Delete** them
 - **Deselect** them, or clear the whole selection
@@ -56,7 +56,7 @@ The bar button opens a selection session, and the toolbar takes care of showing 
 TapTagView(text: $text, isSelecting: $isSelecting)
 ```
 
-`TapTagView` mirrors its session state through the `isSelecting` binding — flip it from a button to begin or end selection.
+`TapTagView` mirrors its session state through the `isSelecting` binding. Flip it from a button to begin or end selection.
 
 ## Configuration
 
@@ -67,14 +67,14 @@ config.accessibility.copyLabel = "Copier"
 textView.configuration = config
 ```
 
-- **Colors** — the highlight and selected-text colors (`tagHighlightColor`, `selectedTagTextColor`).
-- **Localization** — labels, captions, and VoiceOver strings ship in English and French, and any of them can be overridden.
-- **Clean-up** — duplicate and invalid hashtags are tidied away when a session begins; toggle it with `removesDuplicatesOnSelection` (on by default).
+- **Colors:** the highlight and selected-text colors (`tagHighlightColor`, `selectedTagTextColor`).
+- **Localization:** labels, captions, and VoiceOver strings ship in English and French, and any of them can be overridden.
+- **Clean-up:** duplicate and invalid hashtags are tidied away when a session begins; toggle it with `removesDuplicatesOnSelection` (on by default).
 
 ## Behavior
 
 - **Matching is case-insensitive and whole-token.** `#Sun` and `#sun` are the same tag, `#c++` matches in full, and tapping `#sun` leaves `#sunny` untouched.
-- **Your text keeps its styling.** Highlighting, grouping, and deleting all work on the attributed string, so fonts, colors, and links survive — only the tags themselves move or disappear.
+- **Your text keeps its styling.** Highlighting, grouping, and deleting all work on the attributed string, so fonts, colors, and links survive; only the tags themselves move or disappear.
 - **The scroll position holds.** Tapping a tag in a long, scrolled text view no longer snaps back to the top.
 
 ## Accessibility
@@ -93,4 +93,4 @@ textView.configuration = config
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
