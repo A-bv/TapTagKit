@@ -32,3 +32,20 @@ jobs:
             -scheme TapTagKit \
             -destination '${{ matrix.destination }}' \
             CODE_SIGNING_ALLOWED=NO
+
+  docs:
+    name: Build documentation
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      # Fail the build on broken DocC references (they are warnings otherwise),
+      # so documentation can't rot unnoticed.
+      - name: Build DocC
+        run: |
+          set -o pipefail
+          xcodebuild docbuild \
+            -scheme TapTagKit \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            OTHER_DOCC_FLAGS='--warnings-as-errors' \
+            CODE_SIGNING_ALLOWED=NO
