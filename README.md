@@ -85,6 +85,23 @@ config.accessibility.copyLabel = "Copier"
 
 The logic is isolated so it stays testable: every tag and text rule lives in `TagSelectionViewModel`, a plain type with no UIKit, and `TapTextView` just renders what it decides. Haptics and VoiceOver announcements sit behind the `TapTextViewServices` protocol, so tests use fakes and callers can swap them. The toolbar is a SwiftUI view hosted with `UIHostingController`, and the package has no dependencies and builds in Swift 6 under complete strict concurrency.
 
+## Layout
+
+```text
+Package.swift     ┐
+Sources/          │  the package: what SPM builds and ships
+Tests/            ┘
+
+README.md         ┐
+LICENSE           │  essential docs, kept at root by convention
+CHANGELOG.md      ┘
+
+.gitignore        ┐
+.swiftlint.yml    ┘  tooling config
+
+.github/          CI workflow, CONTRIBUTING, SECURITY, demo GIF
+```
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
