@@ -11,7 +11,7 @@ Hashtags you can actually tap. `TapTextView` is a `UITextView` subclass: an ordi
 Start a selection session, from a bar button or in code, then tap the hashtags you want. A toolbar appears where you can copy, cut, group at the top, delete, or deselect them, and it disappears when the session ends. Every action is available programmatically too.
 
 <p align="center">
-  <img src="Assets/demo.gif" alt="Selecting hashtags in a text view, then grouping them at the top" width="380">
+  <img src=".github/demo.gif" alt="Selecting hashtags in a text view, then grouping them at the top" width="380">
 </p>
 
 ## Install
