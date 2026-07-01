@@ -25,7 +25,7 @@ https://github.com/A-bv/TapTagKit
 or declare it in `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/A-bv/TapTagKit", from: "4.0.0")
+.package(url: "https://github.com/A-bv/TapTagKit", from: "5.0.0")
 ```
 
 ## Usage
