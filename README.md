@@ -61,6 +61,18 @@ textView.configuration = config
 
 Labels, captions, and VoiceOver strings ship localized in **English and French** — override any of them through `Configuration`. Duplicate and invalid hashtags are tidied when a session starts (`removesDuplicatesOnSelection`).
 
+## Accessibility
+
+VoiceOver support is built in, not bolted on:
+
+- **Every hashtag is its own element.** During a session each `#tag` reads as a button; activating it (VoiceOver double-tap) toggles that tag exactly like a sighted tap.
+- **Selection changes are spoken.** Selecting or deselecting posts an announcement — at high priority on iOS 17+, so a fast run of toggles isn't dropped mid-utterance.
+- **Everything spoken is localizable** through `Configuration.accessibility`, including the announcement strings.
+
+## Rich text survives every edit
+
+Highlighting, grouping, deleting, and the start-of-session clean-up all operate on the *attributed* text, so caller-supplied fonts, colors, and links are preserved — only the tags themselves move or disappear. Tapping a tag in a long, scrolled text view also keeps the scroll position instead of snapping to the top.
+
 ## Under the hood
 
 Selection state and all tag/text logic live in a UIKit-free `TagSelectionViewModel` (MVVM), so the rules are unit-tested without a single simulated view. History lives in the [CHANGELOG](CHANGELOG.md).
