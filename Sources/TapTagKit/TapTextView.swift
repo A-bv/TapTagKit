@@ -431,12 +431,16 @@ public class TapTextView: UITextView {
     // MARK: - Tag actions
 
     /// Copies the selected tags (space-separated, each prefixed with `#`).
+    /// A no-op when nothing is selected, so it never clears the pasteboard.
     @objc public func copySelectedTags() {
+        guard !viewModel.isEmpty else { return }
         pasteboard.string = viewModel.hashtagList
     }
 
     /// Copies the selected tags, then removes them from the text.
+    /// A no-op when nothing is selected.
     @objc public func cutSelectedTags() {
+        guard !viewModel.isEmpty else { return }
         copySelectedTags()
         deleteSelectedTags()
     }

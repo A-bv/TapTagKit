@@ -231,6 +231,22 @@ final class TapTextViewTests: XCTestCase {
         XCTAssertEqual(pasteboard.string, "#sun #sea")
     }
 
+    func testCopyAndCut_withEmptySelectionAreNoOps() {
+        let pasteboard = UIPasteboard.withUniqueName()
+        defer { UIPasteboard.remove(withName: pasteboard.name) }
+        pasteboard.string = "keep me"
+        let textView = TapTextView()
+        textView.pasteboard = pasteboard
+        textView.text = "#sun and #sea"   // nothing selected
+
+        textView.copySelectedTags()
+        XCTAssertEqual(pasteboard.string, "keep me", "Copy with no selection must not clear the pasteboard")
+
+        textView.cutSelectedTags()
+        XCTAssertEqual(pasteboard.string, "keep me", "Cut with no selection must not clear the pasteboard")
+        XCTAssertEqual(textView.text, "#sun and #sea", "Cut with no selection must not change the text")
+    }
+
     func testHighlight_usesConfiguredSelectedTextColor() {
         let textView = TapTextView()
         var config = TapTextView.Configuration()

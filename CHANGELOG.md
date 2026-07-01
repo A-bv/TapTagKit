@@ -18,6 +18,8 @@ This project adheres to [Semantic Versioning](https://semver.org).
   owning view controller's view instead of the window, so it sits correctly when
   the text view lives in a sheet, a split-view column, or a secondary scene
   rather than full screen.
+- **Copy and cut no longer clear the pasteboard when nothing is selected.** Both
+  are now no-ops with an empty selection, so they can't wipe the user's clipboard.
 
 ## [3.3.0] — 2026-06-29
 
