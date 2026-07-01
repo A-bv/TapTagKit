@@ -15,6 +15,7 @@ private enum Constants {
     static let barBottomInset: CGFloat = 8
 }
 
+@MainActor
 public protocol TapTextViewDelegate: AnyObject {
     func tapTextViewDidStartSelection(_ textView: TapTextView)
     func tapTextViewDidFinishSelection(_ textView: TapTextView)

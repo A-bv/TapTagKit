@@ -6,6 +6,10 @@ import UIKit
 /// Injected (`textView.services = …`) so they can be faked in tests or
 /// customized by callers — e.g. silencing haptics. Defaults to
 /// ``LiveTapTextViewServices``.
+///
+/// Main-actor isolated: every side-effect here (Taptic Engine, VoiceOver) runs
+/// on the UI thread, and the view drives them from main-actor context.
+@MainActor
 public protocol TapTextViewServices: AnyObject {
     /// Warms up the haptic engine ahead of a tap.
     func prepareHaptics()
@@ -16,6 +20,7 @@ public protocol TapTextViewServices: AnyObject {
 }
 
 /// Production services: the Taptic Engine and VoiceOver.
+@MainActor
 public final class LiveTapTextViewServices: TapTextViewServices {
     private let feedback = UIImpactFeedbackGenerator(style: .rigid)
 

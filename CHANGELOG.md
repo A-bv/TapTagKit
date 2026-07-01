@@ -8,6 +8,10 @@ This project adheres to [Semantic Versioning](https://semver.org).
 ### Changed
 - Selection-change VoiceOver announcements post at high priority on iOS 17+, so
   a quick run of tag toggles no longer drops announcements mid-utterance.
+- **Swift 6 language mode.** The package now builds under Swift 6 with complete
+  strict concurrency; the UI-facing delegate and services protocols are annotated
+  `@MainActor`. Building the package requires the Swift 6.0 toolchain (Xcode 16+);
+  the iOS 15 deployment target is unchanged.
 
 ## [3.3.0] — 2026-06-29
 

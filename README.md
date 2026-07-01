@@ -3,7 +3,7 @@
 **Hashtags you can actually tap.** A `UITextView` subclass that turns every `#tag` into a target: tap one to light up all its twins, then act on the whole set from a toolbar.
 
 [![CI](https://github.com/A-bv/TapTagKit/actions/workflows/ci.yml/badge.svg)](https://github.com/A-bv/TapTagKit/actions/workflows/ci.yml)
-![Swift 5.9](https://img.shields.io/badge/Swift-5.9-F05138?logo=swift&logoColor=white)
+![Swift 6.0](https://img.shields.io/badge/Swift-6.0-F05138?logo=swift&logoColor=white)
 ![iOS 15+](https://img.shields.io/badge/iOS-15%2B-007AFF?logo=apple&logoColor=white)
 ![SPM](https://img.shields.io/badge/SPM-compatible-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-lightgrey)
@@ -71,4 +71,4 @@ Open `Sources/TapTagKit/Previews.swift` and switch on the canvas (**Editor › C
 
 ## Requirements & license
 
-iOS 15 · Swift 5.9 · [MIT](LICENSE).
+iOS 15 · Swift 6.0 · [MIT](LICENSE).
