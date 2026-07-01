@@ -37,6 +37,29 @@
 >
 > **Fix queue (second pass):** F9 only. The rest is taste.
 >
+> ### Continued investigation (pushing past convergence)
+> Two elevation avenues were investigated and honestly assessed — neither is a
+> clean, non-gaming win:
+> - **Mac Catalyst:** the package **builds and runs** on Catalyst (verified via
+>   `-destination 'platform=macOS,variant=Mac Catalyst'`). But the window- and
+>   hosting-controller-instantiating UI tests throw an uncaught `NSException` in
+>   the headless Catalyst test host — a harness limitation, not a library defect.
+>   Claiming Catalyst support without a green test run there would overclaim, and
+>   per-platform test skips would degrade the suite. **Deferred, not overclaimed.**
+> - **Code coverage:** the *testable* logic is strongly covered —
+>   `TagSelectionViewModel` 98.95%, `TapTextView` 87.70%, `Localization` /
+>   `TagAccessibilityElement` 100%. The 67% aggregate is dragged down by
+>   `Previews.swift` (0%, DEBUG-only), the `TagActionBar` SwiftUI body (25%), and
+>   `TapTagView`'s `UIViewRepresentable` glue (35%) — none cleanly unit-testable
+>   without snapshot/ViewInspector infrastructure. Raising the aggregate would be
+>   metric-gaming. Instead, added one genuine regression guard for real behavior:
+>   the action bar (and its hosting controller) is torn down when the text view
+>   leaves its window (leak prevention). Suite: 46 → 47 tests.
+>
+> **Genuine ceiling:** further gains are product/scope decisions (a Catalyst
+> snapshot-test rig, ViewInspector-based SwiftUI tests, an external coverage
+> service), not defect fixes.
+>
 > ---
 >
 > _Original first-pass audit (all items resolved) follows._

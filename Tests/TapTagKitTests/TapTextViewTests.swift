@@ -119,6 +119,25 @@ final class TapTextViewTests: XCTestCase {
         XCTAssertFalse(window.subviews.contains { $0 is TagActionBar })
     }
 
+    func testLeavingTheWindow_tearsDownTheActionBar() {
+        let host = UIViewController()
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 320, height: 480))
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+
+        let textView = TapTextView()
+        host.view.addSubview(textView)
+        textView.beginSelection()
+        XCTAssertTrue(host.view.subviews.contains { $0 is TagActionBar })
+
+        // Discarding the text view must remove the bar it added, so a torn-down
+        // text view never leaves its toolbar (or hosting controller) behind.
+        textView.removeFromSuperview()
+
+        XCTAssertFalse(host.view.subviews.contains { $0 is TagActionBar })
+        XCTAssertTrue(host.children.isEmpty)
+    }
+
     func testActionBar_insetsTextWhileShownAndRestoresAfter() {
         let host = UIViewController()
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 320, height: 480))
