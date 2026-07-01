@@ -8,7 +8,7 @@ Hashtags you can actually tap. `TapTextView` is a `UITextView` subclass: an ordi
 ![SPM](https://img.shields.io/badge/SPM-compatible-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-lightgrey)
 
-Start a selection session, from a bar button or in code, and tap the hashtags you want. The tags you pick are highlighted, and a toolbar appears where you can copy them, cut them (copy, then remove them from the text), move them to the top of the text, delete them, or clear the selection. The toolbar goes away when the session ends, and every action is available programmatically too.
+Start a selection session, from a bar button or in code, then tap the hashtags you want. A toolbar appears where you can copy, cut, group at the top, delete, or deselect them, and it disappears when the session ends. Every action is available programmatically too.
 
 <p align="center">
   <img src="Assets/demo.gif" alt="Selecting hashtags in a text view, then grouping them at the top" width="380">
@@ -83,7 +83,7 @@ config.accessibility.copyLabel = "Copier"
 
 ## Implementation
 
-The library is split so the logic stays testable in isolation. Every tag and text rule lives in `TagSelectionViewModel`, a plain type with no UIKit imports, while `TapTextView` is a thin layer that renders what the model decides. System side effects, haptics and VoiceOver announcements, sit behind the `TapTextViewServices` protocol, so tests inject fakes and callers can replace them. The selection toolbar is a SwiftUI view hosted through `UIHostingController` in the view-controller tree, which lets it present its own confirmation dialogs. The package has no third-party dependencies and builds in the Swift 6 language mode under complete strict concurrency.
+The logic is isolated so it stays testable: every tag and text rule lives in `TagSelectionViewModel`, a plain type with no UIKit, and `TapTextView` just renders what it decides. Haptics and VoiceOver announcements sit behind the `TapTextViewServices` protocol, so tests use fakes and callers can swap them. The toolbar is a SwiftUI view hosted with `UIHostingController`, and the package has no dependencies and builds in Swift 6 under complete strict concurrency.
 
 ## License
 
