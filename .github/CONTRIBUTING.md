@@ -1,7 +1,7 @@
 # Contributing to TapTagKit
 
 Thanks for your interest in improving TapTagKit. This is a small, focused
-library — contributions that keep it that way are very welcome.
+library, and contributions that keep it that way are very welcome.
 
 ## Getting started
 
@@ -28,8 +28,7 @@ Requires the Swift 6.0 toolchain (Xcode 16 or later). The runtime deployment
 target is iOS 15.
 
 For a live, tappable demo, open `Sources/TapTagKit/Previews.swift` and turn on
-the canvas (**Editor › Canvas**). The README animation is reproducible —
-`Scripts/record-gif.sh` renders it to `Assets/demo.gif`.
+the canvas (**Editor › Canvas**).
 
 ## Guidelines
 
@@ -45,4 +44,4 @@ the canvas (**Editor › Canvas**). The README animation is reproducible —
 ## Pull requests
 
 Keep pull requests focused and describe the user-visible change. CI must be
-green: build and test on two simulators, lint, and the documentation build.
+green: build and test, lint, and the documentation build.
